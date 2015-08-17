@@ -103,6 +103,8 @@ public class TcpConnection implements Runnable {
 	private void read() {
 		try {
 			in.readTcp(channel);
+		} catch (AsynchronousCloseException e) {
+			// Silently continue
 		} catch (Exception e) {
 			e.printStackTrace();
 			purge();
@@ -136,8 +138,6 @@ public class TcpConnection implements Runnable {
 			connected = false;
 			if (channel != null) { channel.close(); }
 			notifyDisconnected();
-		} catch (AsynchronousCloseException e) {
-			// Silently continue
 	    } catch (IOException e) {
 	    	//TODO Log.debug("Connection to the server was closed");
 	    }
