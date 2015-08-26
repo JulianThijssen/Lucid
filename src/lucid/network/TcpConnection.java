@@ -52,16 +52,12 @@ public class TcpConnection {
 		return in.get();
 	}
 	
-	public void read() {
+	public void read() throws Exception {
 		if (!channel.isConnected()) {
 			close();
 		}
 
-		try {
-			in.readTcp(channel);
-		} catch(Exception e) {
-			close();
-		}
+		in.readTcp(channel);
 	}
 	
 	public void send(Packet packet) {
@@ -85,7 +81,7 @@ public class TcpConnection {
 		} catch(IOException e) {
 			Log.debug(CLOSE_FAILURE);
 		}
-		// TODO server.notifyDisconnection(this);
+		
 		Log.debug("TCP Connection has disconnected");
 	}
 }

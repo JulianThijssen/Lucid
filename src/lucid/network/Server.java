@@ -100,15 +100,17 @@ public abstract class Server implements Runnable {
 					if (connections.size() < Config.MAX_PLAYERS) {
 						TcpConnection tcp = tcpChannel.accept();
 						
-						Connection connection = connections.get(tcp.getUnique());
-						if (connection == null) {
-							connection = new Connection();
-							connection.tcp = tcp;
-							
-							connections.put(tcp.getUnique(), connection);
-							notifyConnection(connection);
-						} else {
-							connection.tcp = tcp;
+						if (tcp != null) {
+							Connection connection = connections.get(tcp.getUnique());
+							if (connection == null) {
+								connection = new Connection();
+								connection.tcp = tcp;
+								
+								connections.put(tcp.getUnique(), connection);
+								notifyConnection(connection);
+							} else {
+								connection.tcp = tcp;
+							}
 						}
 					}
 				}
@@ -118,7 +120,14 @@ public abstract class Server implements Runnable {
 					
 					if (attachment instanceof TcpConnection) {
 						TcpConnection tcp = (TcpConnection) attachment;
-						tcp.read();
+						
+						try {
+							tcp.read();
+						} catch (Exception e) {
+							notifyDisconnection(connections.get(tcp.getUnique()));
+							tcp.close();
+						}
+						
 						Packet packet = null;
 						while ((packet = tcp.getPacket()) != null) {
 							notifyReceived(connections.get(tcp.getUnique()), packet);
@@ -225,7 +234,7 @@ public abstract class Server implements Runnable {
     
     /** Notify all listeners of the disconnection */
     public void notifyDisconnection(Connection connection) {
-    	//removeConnection(connection.);
+    	removeConnection(connection.tcp.getUnique()); // FIXME maybe UDP too?
     	for (ServerListener sl: listeners) {
     		sl.onDisconnect(connection);
     	}

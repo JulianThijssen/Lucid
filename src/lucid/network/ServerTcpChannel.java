@@ -40,7 +40,12 @@ public class ServerTcpChannel {
 		
 		TcpConnection connection = new TcpConnection(client);
 		
-		connection.read();
+		try {
+			connection.read();
+		} catch (Exception e) {
+			connection.close();
+			return null;
+		}
 		Packet handshake = connection.getPacket();
 		System.out.println("Handshake: " + handshake);
 		connection.setUnique(handshake.getLong());

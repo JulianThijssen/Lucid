@@ -56,6 +56,10 @@ public class PacketBuffer {
 		channel.read(in);
 
 		bytesRead = in.position();
+		
+		if (bytesRead == 0) {
+			throw new AsynchronousCloseException();
+		}
 
 		in.flip();
 		
