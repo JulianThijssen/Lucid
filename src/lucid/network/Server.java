@@ -10,6 +10,7 @@ import java.util.List;
 
 import lucid.Config;
 import lucid.util.Log;
+import lucid.util.LogLevel;
 
 public abstract class Server implements Runnable {
 	/** The TCP channel bound to a port which receives TCP client connection requests. */
@@ -93,6 +94,7 @@ public abstract class Server implements Runnable {
     	try {
 			selector.select();
 			Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
+
 			while (iterator.hasNext()) {
 				SelectionKey key = (SelectionKey) iterator.next();
 
@@ -103,34 +105,49 @@ public abstract class Server implements Runnable {
 						if (tcp != null) {
 							Connection connection = connections.get(tcp.getUnique());
 							if (connection == null) {
+								// If there is no connection, make a new connection and add TCP to it
 								connection = new Connection();
 								connection.tcp = tcp;
-								
 								connections.put(tcp.getUnique(), connection);
 								notifyConnection(connection);
 							} else {
-								connection.tcp = tcp;
+								// There is already a connection
+								if (connection.tcp == null) {
+									// If the connection has no TCP, add TCP to it
+									connection.tcp = tcp;
+								}
+								else {
+									// If the connection already has TCP, deny the new connection
+									Log.debug(LogLevel.SERVER, "Connection denied, client already connected via TCP");
+									key.cancel();
+									tcp.close();
+								}
 							}
 						}
 					}
 				}
 				
-				if (key.isReadable()) {
+				else if (key.isReadable()) {
 					Object attachment = key.attachment();
 					
 					if (attachment instanceof TcpConnection) {
 						TcpConnection tcp = (TcpConnection) attachment;
-						
+
 						try {
 							tcp.read();
 						} catch (Exception e) {
-							notifyDisconnection(connections.get(tcp.getUnique()));
+							// The connection to this client broke, disconnect them
 							tcp.close();
+							key.cancel();
+							notifyDisconnection(connections.get(tcp.getUnique()));
+							removeConnection(tcp.getUnique());
 						}
 						
 						Packet packet = null;
 						while ((packet = tcp.getPacket()) != null) {
-							notifyReceived(connections.get(tcp.getUnique()), packet);
+							if (connections.get(tcp.getUnique()) != null) {
+								notifyReceived(connections.get(tcp.getUnique()), packet);
+							}
 						}
 					} else if (attachment instanceof ServerUdpChannel) {
 						udpChannel.read();
@@ -164,19 +181,19 @@ public abstract class Server implements Runnable {
 								if (connection != null) {
 									notifyReceived(connection, packet);
 								} else {
-									Log.error("This ain't good!"); // TODO
+									Log.debug(LogLevel.ERROR, "This ain't good!"); // TODO
 								}
 							}
 						}
 					} else {
-						Log.error("There is an unknown readable channel");
+						Log.debug(LogLevel.ERROR, "There is an unknown readable channel");
 					}
 				}
 				
 				iterator.remove();
 			}
     	} catch(IOException e) {
-    		Log.error("An error occurred while selecting channels");
+    		Log.debug(LogLevel.ERROR, "An error occurred while selecting channels");
     	}
     }
     
@@ -234,7 +251,6 @@ public abstract class Server implements Runnable {
     
     /** Notify all listeners of the disconnection */
     public void notifyDisconnection(Connection connection) {
-    	removeConnection(connection.tcp.getUnique()); // FIXME maybe UDP too?
     	for (ServerListener sl: listeners) {
     		sl.onDisconnect(connection);
     	}

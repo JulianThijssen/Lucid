@@ -11,6 +11,8 @@ import java.util.List;
 
 import lucid.network.Packet;
 import lucid.network.PacketBuffer;
+import lucid.util.Log;
+import lucid.util.LogLevel;
 import lucid.util.UniqueGenerator;
 
 public class TcpConnection implements Runnable {
@@ -44,10 +46,10 @@ public class TcpConnection implements Runnable {
 			send(packet);
 			read();
 			getPacket();
-			System.out.println("TCP client handshake successful");
+			Log.debug(LogLevel.CLIENT, "TCP handshake successful");
 	    } catch(IOException e) {
 	    	e.printStackTrace();
-	        purge();
+	    	close();
 	        //TODO Log.debug(String.format("Failed to connect to host: %s at port: %d", host, port));
 	        return false;
 	    }
@@ -77,7 +79,7 @@ public class TcpConnection implements Runnable {
 	
 	private void listen() {
 		if(!channel.isConnected()) {
-			purge();
+			close();
 		}
 
 		read();
@@ -96,7 +98,7 @@ public class TcpConnection implements Runnable {
 			channel.write(out);
 			out.clear();
 		} catch(IOException e) {
-			purge();
+			close();
 		}
 	}
 	
@@ -107,7 +109,7 @@ public class TcpConnection implements Runnable {
 			// Silently continue
 		} catch (Exception e) {
 			e.printStackTrace();
-			purge();
+			close();
 		}
 	}
 	
@@ -133,7 +135,7 @@ public class TcpConnection implements Runnable {
 		}
 	}
 	
-	public void purge() {
+	public void close() {
 		try {
 			connected = false;
 			if (channel != null) { channel.close(); }

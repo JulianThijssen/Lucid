@@ -1,11 +1,11 @@
 package lucid.util;
 
 public class Log {
-	public static void debug(String message) {
-		System.out.println("[Server] " + message);
-	}
+	public static LogLevel listenLevel = LogLevel.NONE;
 	
-	public static void error(String error) {
-		System.err.println("[Error] " + error);
+	public static void debug(LogLevel level, String message) {
+		if (level == listenLevel || listenLevel == LogLevel.ALL) {
+			System.out.println(message);
+		}
 	}
 }

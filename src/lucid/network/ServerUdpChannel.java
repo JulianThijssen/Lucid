@@ -10,6 +10,7 @@ import java.nio.channels.Selector;
 
 import lucid.Config;
 import lucid.util.Log;
+import lucid.util.LogLevel;
 
 public class ServerUdpChannel {
 	/** The channel this server will listen on for UDP connections */
@@ -50,7 +51,7 @@ public class ServerUdpChannel {
 			}
 			
 			long unique = handshake.getLong();
-			Log.debug("Got a new handshake from client with id: " + unique);
+			Log.debug(LogLevel.SERVER, "Got a new handshake from client with id: " + unique);
 			ByteBuffer hOut = Packet.toByteBuffer(handshake);
 			channel.send(hOut, handshake.getSource());
 			
@@ -65,11 +66,11 @@ public class ServerUdpChannel {
 				
 				return connection;
 			} catch(IOException e) {
-				Log.error("Failed to open new UDP connection on server");
+				Log.debug(LogLevel.ERROR, "Failed to open new UDP connection on server");
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			Log.error("An error occurred in ServerUdpChannel:accept(), " + e.getMessage());
+			Log.debug(LogLevel.ERROR, "An error occurred in ServerUdpChannel:accept(), " + e.getMessage());
 			close();
 		}
 		
@@ -92,9 +93,9 @@ public class ServerUdpChannel {
 		try {
 			channel.close();
 		} catch (IOException e) {
-			Log.error("ServerUdpChannel failed to close gracefully, " + e.getMessage());
+			Log.debug(LogLevel.ERROR, "ServerUdpChannel failed to close gracefully, " + e.getMessage());
 		}
 		
-		Log.debug("The ServerUdpChannel has closed.");
+		Log.debug(LogLevel.SERVER, "The ServerUdpChannel has closed.");
 	}
 }

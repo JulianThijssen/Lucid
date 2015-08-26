@@ -11,6 +11,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import lucid.util.Log;
+import lucid.util.LogLevel;
 
 public class PacketBuffer {
 	private ByteBuffer in = null;
@@ -52,9 +53,8 @@ public class PacketBuffer {
 	public int readTcp(SocketChannel channel) throws AsynchronousCloseException, Exception {
 		int bytesRead = 0;
 		in.clear();
-
+		
 		channel.read(in);
-
 		bytesRead = in.position();
 		
 		if (bytesRead == 0) {
@@ -70,7 +70,7 @@ public class PacketBuffer {
 				boolean added = packets.offer(packet);
 
 				if (!added) {
-					Log.debug("The input packet buffers capacity has been exceeded." + " : " + source);
+					Log.debug(LogLevel.ERROR, "The input packet buffers capacity has been exceeded." + " : " + source);
 				}
 			}
 		} while (packet != null);
@@ -99,7 +99,7 @@ public class PacketBuffer {
 
 			return packet;
 		} catch(BufferUnderflowException e) {
-			Log.error("Received a broken packet" + " : " + source);
+			Log.debug(LogLevel.ERROR, "Received a broken packet" + " : " + source);
 			return null;
 		}
 	}

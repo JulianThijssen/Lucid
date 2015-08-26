@@ -10,6 +10,7 @@ import java.nio.channels.SocketChannel;
 
 import lucid.Config;
 import lucid.util.Log;
+import lucid.util.LogLevel;
 
 public class ServerTcpChannel {
 	/** The TCP channel bound to a port which receives TCP client connection requests. */
@@ -47,14 +48,16 @@ public class ServerTcpChannel {
 			return null;
 		}
 		Packet handshake = connection.getPacket();
-		System.out.println("Handshake: " + handshake);
+		
+		Log.debug(LogLevel.SPACKET, "Handshake: " + handshake);
+		
 		connection.setUnique(handshake.getLong());
 		connection.send(handshake);
 		
 		connection.getChannel().configureBlocking(false);
 		SelectionKey key = client.register(selector, SelectionKey.OP_READ);
 		key.attach(connection);
-		
+		Log.debug(LogLevel.ERROR, "New: " + connection.getUnique());
 		return connection;
 	}
 	
@@ -62,9 +65,9 @@ public class ServerTcpChannel {
 		try {
 			channel.close();
 		} catch (IOException e) {
-			Log.error("ServerTcpChannel failed to close gracefully, " + e.getMessage());
+			Log.debug(LogLevel.ERROR, "ServerTcpChannel failed to close gracefully, " + e.getMessage());
 		}
 		
-		Log.debug("The ServerTcpChannel has closed.");
+		Log.debug(LogLevel.ERROR, "The ServerTcpChannel has closed.");
 	}
 }

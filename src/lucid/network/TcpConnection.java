@@ -6,6 +6,7 @@ import java.nio.channels.SocketChannel;
 
 import lucid.Config;
 import lucid.util.Log;
+import lucid.util.LogLevel;
 
 public class TcpConnection {
 	/** Debug messages */
@@ -70,7 +71,7 @@ public class TcpConnection {
 			} catch(IOException e) {
 				close();
 			}
-			System.out.println("Sent to: " + unique + " , " + packet);
+			Log.debug(LogLevel.SPACKET, "Sent to: " + unique + " , " + packet);
 		}
 	}
 
@@ -79,9 +80,9 @@ public class TcpConnection {
 			connected = false;
 			channel.close();
 		} catch(IOException e) {
-			Log.debug(CLOSE_FAILURE);
+			Log.debug(LogLevel.SERVER, CLOSE_FAILURE);
 		}
 		
-		Log.debug("TCP Connection has disconnected");
+		Log.debug(LogLevel.SERVER, "TCP Connection has disconnected");
 	}
 }

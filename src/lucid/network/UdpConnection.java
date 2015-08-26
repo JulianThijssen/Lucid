@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
+
 import lucid.Config;
 import lucid.util.Log;
+import lucid.util.LogLevel;
 
 public class UdpConnection {
 	/** Debug messages */
@@ -55,10 +57,10 @@ public class UdpConnection {
 		try {
 			channel.connect(address);
 		} catch (IOException e) {
-			Log.error("Failed to set up UDP connection to client");
+			Log.debug(LogLevel.ERROR, "Failed to set up UDP connection to client");
 			close();
 		}
-		Log.debug("Succesfully set up UDP connection to client: " + address);
+		Log.debug(LogLevel.SERVER, "Succesfully set up UDP connection to client: " + address);
 	}
 	
 	public void send(Packet packet) {
@@ -80,11 +82,11 @@ public class UdpConnection {
 			connected = false;
 			channel.close();
 		} catch (IOException e) {
-			Log.debug(CLOSE_FAILURE);
+			Log.debug(LogLevel.ERROR, CLOSE_FAILURE);
 		}
 		// TODO server.notifyDisconnection(this);
 		// TODO server.removeConnection(id);
 
-		Log.debug("UDP connection has disconnected");
+		Log.debug(LogLevel.SERVER, "UDP connection has disconnected");
 	}
 }

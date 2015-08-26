@@ -9,6 +9,8 @@ import java.util.List;
 
 import lucid.network.Packet;
 import lucid.network.PacketBuffer;
+import lucid.util.Log;
+import lucid.util.LogLevel;
 import lucid.util.UniqueGenerator;
 
 public class UdpConnection implements Runnable {
@@ -45,13 +47,13 @@ public class UdpConnection implements Runnable {
 	    } catch(IOException e) {
 	    	e.printStackTrace();
 	        close();
-	        //TODO Log.debug(String.format("Failed to connect to host: %s at port: %d", host, port));
+	        Log.debug(LogLevel.CLIENT, String.format("Failed to connect to host: %s at port: %d", host, port));
 	        return false;
 	    }
 		
 		new Thread(this).start();
 		notifyConnected();
-		//TODO Log.debug(String.format("Successfully connected to host: %s at port: %d", host, port));
+		Log.debug(LogLevel.CLIENT, String.format("Successfully connected to host: %s at port: %d", host, port));
 		
 		return true;
 	}
@@ -68,7 +70,7 @@ public class UdpConnection implements Runnable {
 
 			read();
 			getPacket();
-			System.out.println("UDP client handshake successful");
+			Log.debug(LogLevel.CPACKET, "UDP handshake successful");
 			return true;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -119,7 +121,7 @@ public class UdpConnection implements Runnable {
 			e.printStackTrace();
 			close();
 		}
-		System.out.println("[Client] Done sending");
+		Log.debug(LogLevel.CPACKET, "Done sending packet");
 	}
 	
 	public void addListener(NetworkListener listener) {
@@ -152,6 +154,6 @@ public class UdpConnection implements Runnable {
 	    } catch(IOException e) {
 	    	//TODO Log.debug("Connection to the server was closed");
 	    }
-		System.out.println("[Client] PURGED!");
+		Log.debug(LogLevel.CLIENT, "Connection closed");
 	}
 }
