@@ -20,7 +20,7 @@ public class ServerUdpChannel {
 	private int port;
 	
 	/** The packet buffer that caches incoming packets */
-	private PacketBuffer in = new PacketBuffer(Config.READ_BUFFER, "TCP Server");
+	private PacketBuffer in = new PacketBuffer(Config.READ_BUFFER, "UDP Server");
 	
 	/** The selector which will select when this channel is ready accept */
 	private Selector selector;
@@ -73,7 +73,7 @@ public class ServerUdpChannel {
 			Log.debug(LogLevel.ERROR, "An error occurred in ServerUdpChannel:accept(), " + e.getMessage());
 			close();
 		}
-		
+
 		return null;
 	}
 	

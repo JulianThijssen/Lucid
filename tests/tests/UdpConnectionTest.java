@@ -28,7 +28,7 @@ public class UdpConnectionTest implements NetworkListener {
 		while (!received) {
 			System.out.println("Trying to receive...");
 			try {
-				Thread.sleep(1);
+				Thread.sleep(10);
 			} catch(Exception e) {
 				
 			}

@@ -33,7 +33,7 @@ public class UdpConnection implements Runnable {
     
 	public boolean connect(String host, int port) {
 		address = new InetSocketAddress(host, port);
-		
+
 		try {
 			channel = DatagramChannel.open();
 			connected = handshake(address);
@@ -50,7 +50,7 @@ public class UdpConnection implements Runnable {
 	        Log.debug(LogLevel.CLIENT, String.format("Failed to connect to host: %s at port: %d", host, port));
 	        return false;
 	    }
-		
+
 		new Thread(this).start();
 		notifyConnected();
 		Log.debug(LogLevel.CLIENT, String.format("Successfully connected to host: %s at port: %d", host, port));

@@ -19,8 +19,6 @@ public class TcpConnectionTest {
 
 		server.start();
 		
-		
-		
 		for (int i = 0; i < 150; i++) {
 			Packet packet = new Packet(1);
 			packet.addString("Packet " + i);

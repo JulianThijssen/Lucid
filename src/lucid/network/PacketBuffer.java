@@ -28,21 +28,21 @@ public class PacketBuffer {
 		return packets.poll();
 	}
 	
-	public int readUdp(DatagramChannel channel) throws IOException {
+	public synchronized int readUdp(DatagramChannel channel) throws IOException {
 		int bytesRead = 0;
 		in.clear();
-		
-		InetSocketAddress source = (InetSocketAddress) channel.receive(in);
+
+		InetSocketAddress sourceAddress = (InetSocketAddress) channel.receive(in);
 		bytesRead = in.position();
-		
+
 		in.flip();
 		
 		Packet packet = null;
-		
+
 		do {
 			packet = extract(in);
 			if (packet != null) {
-				packet.setSource(source);
+				packet.setSource(sourceAddress);
 				packets.offer(packet);
 			}
 		} while (packet != null);
@@ -82,14 +82,14 @@ public class PacketBuffer {
 			if (in.position() == in.limit()) {
 				return null;
 			}
-			
+
 			int type = in.get();
 			if (type == -1) {
 				return null;
 			}
-			
+
 			int len = in.getShort();
-			
+
 			Packet packet = new Packet(type);
 			byte[] b = new byte[len];
 			for(int i = 0; i < len; i++) {
