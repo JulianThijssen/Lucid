@@ -16,32 +16,20 @@ public class ContinuousTest implements NetworkListener {
 	
 	public ContinuousTest() {
 		Log.listenLevel = LogLevel.ALL;
-		SpamUdpTestServer server = new SpamUdpTestServer(4445);
-		TcpTestServer tcpServer = new TcpTestServer(4444);
+		SpamUdpTestServer server = new SpamUdpTestServer(4444, 4445);
 		
 		server.start();
-		tcpServer.start();
-
-		UdpConnection udp = new UdpConnection();
-		udp.addListener(this);
+		
 		System.out.println("Preconnect");
-		udp.connect("127.0.0.1", 4445);
 		TcpConnection tcp = new TcpConnection();
 		tcp.addListener(this);
 		tcp.connect("127.0.0.1", 4444);
+		UdpConnection udp = new UdpConnection();
+		udp.addListener(this);
+		udp.connect("127.0.0.1", 4445);
 		System.out.println("Postconnect");
 		//udp.send(packet);
-		server.tick();
-		while (true) {
-			//System.out.println("Trying to receive...");
-			try {
-				Packet packet = new Packet(0);
-				tcp.send(packet);
-				Thread.sleep(10);
-			} catch(Exception e) {
-				
-			}
-		}
+		server.begin();
 	}
 
 	@Override

@@ -8,27 +8,17 @@ import lucid.network.ServerListener;
 public class SpamUdpTestServer extends Server implements ServerListener {
 	public Connection connection;
 	private Packet packet;
+	private Sender sender = new Sender();
 	
-	public SpamUdpTestServer(int port) {
-		super(0, port);
+	public SpamUdpTestServer(int tcpPort, int udpPort) {
+		super(tcpPort, udpPort);
 		addListener(this);
-		packet = new Packet(1);
+		packet = new Packet(0);
 		packet.addString("UDP Test Packet");
 	}
 
-	public void tick() {
-		while (true) {
-			if (connection != null) {
-				System.out.println("Sent!");
-				connection.sendUdp(packet);
-			}
-			
-			try {
-				Thread.sleep(60);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
+	public void begin() {
+		sender.start();
 	}
 	
 	@Override
@@ -55,8 +45,30 @@ public class SpamUdpTestServer extends Server implements ServerListener {
 	@Override
 	public void onReceived(Connection connection, Packet packet) {
 		System.out.println("[Server] Receive: " + packet.getString());
-		Packet p = new Packet(2);
+		Packet p = new Packet(0);
 		p.addString("Reply");
 		connection.sendUdp(p);
+	}
+	
+	private class Sender implements Runnable {
+		public void start() {
+			new Thread(this).start();
+		}
+		
+		@Override
+		public void run() {
+			while (true) {
+				if (connection != null) {
+					System.out.println("Sent!");
+					connection.sendUdp(packet);
+				}
+				
+				try {
+					Thread.sleep(50);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 }

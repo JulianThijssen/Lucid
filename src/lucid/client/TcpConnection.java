@@ -1,6 +1,7 @@
 package lucid.client;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
@@ -35,8 +36,9 @@ public class TcpConnection implements Runnable {
     /** List of all the listeners that get notified of connection events */
     private List<NetworkListener> listeners = new ArrayList<NetworkListener>();
     
-	public boolean connect(String host, int port) {
+	public boolean connect(String host, int port) throws ConnectException {
 		try {
+			Log.debug(LogLevel.CLIENT, String.format("Attempting to connect to host: %s at port %d", host, port));
 			channel = SocketChannel.open();
 			channel.connect(new InetSocketAddress(host, port));
 			channel.setOption(StandardSocketOptions.TCP_NODELAY, true);
@@ -50,7 +52,7 @@ public class TcpConnection implements Runnable {
 	    } catch(IOException e) {
 	    	e.printStackTrace();
 	    	close();
-	        //TODO Log.debug(String.format("Failed to connect to host: %s at port: %d", host, port));
+	        Log.debug(LogLevel.CLIENT, String.format("Failed to connect to host: %s at port: %d", host, port));
 	        return false;
 	    }
 		connected = true;

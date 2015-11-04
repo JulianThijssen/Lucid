@@ -38,7 +38,7 @@ public class UdpConnection implements Runnable {
 			channel = DatagramChannel.open();
 			connected = handshake(address);
 			
-			channel.configureBlocking(false);
+			//channel.configureBlocking(false);
 			
 			if (!connected) {
 				close();
