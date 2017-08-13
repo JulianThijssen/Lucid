@@ -5,11 +5,18 @@ import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
+import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.AsynchronousCloseException;
+import java.nio.channels.ClosedByInterruptException;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.ConnectionPendingException;
 import java.nio.channels.SocketChannel;
+import java.nio.channels.UnresolvedAddressException;
+import java.nio.channels.UnsupportedAddressTypeException;
 import java.util.ArrayList;
 import java.util.List;
 
+import lucid.exceptions.ConnectionException;
 import lucid.network.Packet;
 import lucid.network.PacketBuffer;
 import lucid.util.Log;
@@ -36,7 +43,7 @@ public class TcpConnection implements Runnable {
     /** List of all the listeners that get notified of connection events */
     private List<NetworkListener> listeners = new ArrayList<NetworkListener>();
     
-	public boolean connect(String host, int port) throws ConnectException {
+	public boolean connect(String host, int port) throws ConnectionException {
 		try {
 			Log.debug(LogLevel.CLIENT, String.format("Attempting to connect to host: %s at port %d", host, port));
 			channel = SocketChannel.open();
@@ -49,11 +56,22 @@ public class TcpConnection implements Runnable {
 			read();
 			getPacket();
 			Log.debug(LogLevel.CLIENT, "TCP handshake successful");
-	    } catch(IOException e) {
-	    	e.printStackTrace();
-	    	close();
-	        Log.debug(LogLevel.CLIENT, String.format("Failed to connect to host: %s at port: %d", host, port));
-	        return false;
+		} catch (AlreadyConnectedException ace) {
+			throw new ConnectionException("Already connected to host");
+		} catch (ConnectionPendingException cpe) {
+			throw new ConnectionException("A non-blocking operation is already in progress on this channel.");
+		} catch (ClosedChannelException cce) {
+			throw new ConnectionException("The channel is closed.");
+		} catch (UnsupportedAddressTypeException asce) {
+			throw new ConnectionException("The type of the given remote address is not supported.");
+		} catch (UnresolvedAddressException uae) {
+			throw new ConnectionException("The given remote address is not fully resolved.");
+		} catch (SecurityException se) {
+			throw new ConnectionException("The security manager does not permit access to remote endpoint.");
+		} catch (ConnectException ce) {
+			throw new ConnectionException(String.format("The host: %s at port: %d is not online.", host, port));
+		} catch (IOException e) {
+			throw new ConnectionException(String.format("IO Exception occurred while connecting to: %s at port: %d", host, port));
 	    }
 		connected = true;
 		
