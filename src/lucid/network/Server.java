@@ -90,7 +90,7 @@ public abstract class Server implements Runnable {
 	}
 	
     /** Listens to incoming connection requests from clients and passes them in a Connection class */
-    public void listen() {
+    private void listen() {
     	try {
 			selector.select();
 			Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
@@ -229,42 +229,42 @@ public abstract class Server implements Runnable {
 	}
     
     /** Notify all listeners of the server start */
-    public void notifyServerStart() {
+    private void notifyServerStart() {
     	for (ServerListener sl: listeners) {
     		sl.onServerStart();
     	}
     }
     
     /** Notify all listeners of the server stop */
-    public void notifyServerStop() {
+    private void notifyServerStop() {
     	for (ServerListener sl: listeners) {
     		sl.onServerStop();
     	}
     }
     
     /** Notify all listeners of the new connection */
-    public void notifyConnection(Connection connection) {
+    private void notifyConnection(Connection connection) {
     	for (ServerListener sl: listeners) {
     		sl.onConnection(connection);
     	}
     }
     
     /** Notify all listeners of the disconnection */
-    public void notifyDisconnection(Connection connection) {
+    private void notifyDisconnection(Connection connection) {
     	for (ServerListener sl: listeners) {
     		sl.onDisconnect(connection);
     	}
     }
     
     /** Notify all listeners of received packets */
-    public void notifyReceived(Connection connection, Packet packet) {
+    private void notifyReceived(Connection connection, Packet packet) {
     	for (ServerListener sl: listeners) {
     		sl.onReceived(connection, packet);
     	}
     }
     
     /** Notify all listeners of server error */
-    public void notifyError(ServerError error) {
+    private void notifyError(ServerError error) {
     	for (ServerErrorListener sel: errorListeners) {
     		sel.onServerError(error);
     	}
