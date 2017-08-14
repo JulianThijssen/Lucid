@@ -48,7 +48,7 @@ public class Packet {
 	}
 	
 	public int getLength() {
-		return data.length;
+		return data != null ? data.length : 0;
 	}
 	
 	public void reset() {
@@ -202,21 +202,19 @@ public class Packet {
 	
 	public void increaseCapacity(int delta) {
 		if(data == null) {data = new byte[delta]; return;}
-		byte[] b = new byte[data.length + delta];
-		for(int i = 0; i < data.length; i++) {
+		byte[] b = new byte[getLength() + delta];
+		for(int i = 0; i < getLength(); i++) {
 			b[i] = data[i];
 		}
 		data = b;
 	}
 	
 	public byte[] getData() {
-		if (data == null) { return null; }
-		
-		byte b[] = new byte[data.length + 3];
+		byte b[] = new byte[getLength() + 3];
 		b[0] = (byte) type;
-		b[1] = (byte) (data.length >> 8);
-		b[2] = (byte) (data.length >> 0);
-		for(int i = 0; i < data.length; i++) {
+		b[1] = (byte) (getLength() >> 8);
+		b[2] = (byte) (getLength() >> 0);
+		for(int i = 0; i < getLength(); i++) {
 			b[3 + i] = data[i];
 		}
 		return b;
@@ -258,7 +256,7 @@ public class Packet {
 	public String toString() {
 		String s = "";
 		s = s + String.format("Type: %02X \n Data: ", type);
-		for(int i = 0; i < data.length; i++) {
+		for(int i = 0; i < getLength(); i++) {
 			s = s + String.format("%02X ", data[i]);
 		}
 		return s;
