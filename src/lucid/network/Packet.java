@@ -210,6 +210,8 @@ public class Packet {
 	}
 	
 	public byte[] getData() {
+		if (data == null) { return null; }
+		
 		byte b[] = new byte[data.length + 3];
 		b[0] = (byte) type;
 		b[1] = (byte) (data.length >> 8);
