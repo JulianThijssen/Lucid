@@ -199,6 +199,8 @@ public abstract class Server implements Runnable {
     
 	/** Broadcast a packet to all clients connected to the server */
 	public void broadcastTcp(Packet packet) {
+		if (packet == null) { return; }
+		
 		for(Connection connection: connections.values()) {
 			if(connection != null) {
 				connection.sendTcp(packet);
@@ -208,6 +210,8 @@ public abstract class Server implements Runnable {
 	
 	/** Broadcast a packet to all clients connected to the server */
 	public void broadcastUdp(Packet packet) {
+		if (packet == null) { return; }
+		
 		for(Connection connection: connections.values()) {
 			if(connection != null) {
 				connection.sendUdp(packet);
