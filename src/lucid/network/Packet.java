@@ -63,6 +63,10 @@ public class Packet {
 		pos = 0;
 	}
 	
+	private void incrementPosition(int offset) {
+		pos += offset;
+	}
+	
 	public void addBoolean(boolean b) {
 		increaseCapacity(1);
 		if (b) {
@@ -138,7 +142,10 @@ public class Packet {
 		if(data[pos] != BYTE) {
 			throw new PacketException("Tried to read byte at position: " + pos);
 		}
-		return data[pos++];
+		byte b = data[pos+1];
+		incrementPosition(2);
+		
+		return b;
 	}
 	
 	public short getShort() throws PacketException {
@@ -146,8 +153,10 @@ public class Packet {
 			throw new PacketException("Tried to read short at position: " + pos);
 		}
 		byte[] b = new byte[2];
-		b[0] = data[pos++];
-		b[1] = data[pos++];
+		b[0] = data[pos+1];
+		b[1] = data[pos+2];
+		
+		incrementPosition(3);
 		return (short) (b[0] << 8 | b[1] << 0);
 	}
 	
@@ -156,11 +165,12 @@ public class Packet {
 			throw new PacketException("Tried to read int at position: " + pos);
 		}
 		byte[] b = new byte[4];
-		b[0] = data[pos++];
-		b[1] = data[pos++];
-		b[2] = data[pos++];
-		b[3] = data[pos++];
-
+		b[0] = data[pos+1];
+		b[1] = data[pos+2];
+		b[2] = data[pos+3];
+		b[3] = data[pos+4];
+		
+		incrementPosition(5);
 		return  b[0] << 24 & 0xFF000000 |
 				b[1] << 16 & 0x00FF0000 |
 				b[2] << 8  & 0x0000FF00 |
@@ -172,11 +182,13 @@ public class Packet {
 			throw new PacketException("Tried to read float at position: " + pos);
 		}
 		ByteBuffer buf = ByteBuffer.allocate(4);
-		buf.put(data[pos++]);
-		buf.put(data[pos++]);
-		buf.put(data[pos++]);
-		buf.put(data[pos++]);
+		buf.put(data[pos+1]);
+		buf.put(data[pos+2]);
+		buf.put(data[pos+3]);
+		buf.put(data[pos+4]);
 		buf.flip();
+		
+		incrementPosition(5);
 		return buf.getFloat();
 	}
 	
@@ -185,10 +197,12 @@ public class Packet {
 		if(data[pos] != STRING) {
 			throw new PacketException("Tried to read string at position: " + pos);
 		}
-		int length = (data[pos++] << 8) | (data[pos++]);
+		int length = (data[pos+1] << 8) | (data[pos+2]);
 		for(int i = 0; i < length; i++) {
-			s = s + (char) data[pos++];
+			s = s + (char) data[pos+3+i];
 		}
+		
+		incrementPosition(3 + length);
 		return s;
 	}
 	
@@ -207,6 +221,7 @@ public class Packet {
 			shift -= 8;
 		}
 		
+		incrementPosition(9);
 		return l;
 	}
 	
