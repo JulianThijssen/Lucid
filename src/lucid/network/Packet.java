@@ -134,16 +134,16 @@ public class Packet {
 		return b == TRUE;
 	}
 	
-	public byte getByte() {
-			return -1;
+	public byte getByte() throws PacketException {
 		if(data[pos] != BYTE) {
+			throw new PacketException("Tried to read byte at position: " + pos);
 		}
 		return data[pos++];
 	}
 	
-	public short getShort() {
-			return -1;
+	public short getShort() throws PacketException {
 		if (data[pos] != SHORT) {
+			throw new PacketException("Tried to read short at position: " + pos);
 		}
 		byte[] b = new byte[2];
 		b[0] = data[pos++];
@@ -151,9 +151,9 @@ public class Packet {
 		return (short) (b[0] << 8 | b[1] << 0);
 	}
 	
-	public int getInt() {
-			return -1;
+	public int getInt() throws PacketException {
 		if (data[pos] != INTEGER) {
+			throw new PacketException("Tried to read int at position: " + pos);
 		}
 		byte[] b = new byte[4];
 		b[0] = data[pos++];
@@ -167,9 +167,9 @@ public class Packet {
 				b[3] << 0  & 0x000000FF;
 	}
 	
-	public float getFloat() {
-			return -1;
+	public float getFloat() throws PacketException {
 		if (data[pos] != FLOAT) {
+			throw new PacketException("Tried to read float at position: " + pos);
 		}
 		ByteBuffer buf = ByteBuffer.allocate(4);
 		buf.put(data[pos++]);
@@ -180,10 +180,10 @@ public class Packet {
 		return buf.getFloat();
 	}
 	
-	public String getString() {
+	public String getString() throws PacketException {
 		String s = "";
 		if(data[pos] != STRING) {
-			return null;
+			throw new PacketException("Tried to read string at position: " + pos);
 		}
 		int length = (data[pos++] << 8) | (data[pos++]);
 		for(int i = 0; i < length; i++) {
@@ -192,9 +192,9 @@ public class Packet {
 		return s;
 	}
 	
-	public long getLong() {
-			return -1;
+	public long getLong() throws PacketException {
 		if (data[pos] != LONG) {
+			throw new PacketException("Tried to read long at position: " + pos);
 		}
 		
 		long l = 0;
