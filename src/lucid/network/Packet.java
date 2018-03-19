@@ -4,21 +4,24 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
 /**
- * The packet format specifies each piece of data must be preceded by a byte indicating its type.
- * Below follows a list of these types and their values:
- * False      - 0x00
- * True       - 0x01
- * Byte       - 0x02
- * Short      - 0x03
- * Integer    - 0x04
- * Float      - 0x05
- * String     - 0x06
- * Long       - 0x07
  * 
  * @author Julian Thijssen
  */
 
 public class Packet {
+	/**
+	 * The packet format specifies each piece of data must be preceded by a byte indicating its type.
+	 * Below follows a list of these types and their values:
+	 */
+	private static final byte FALSE   = 0;
+	private static final byte TRUE    = 1;
+	private static final byte BYTE    = 2;
+	private static final byte SHORT   = 3;
+	private static final byte INTEGER = 4;
+	private static final byte FLOAT   = 5;
+	private static final byte STRING  = 6;
+	private static final byte LONG    = 7;
+	
 	/* Type of the packet */
 	private int type = -1;
 	
@@ -58,28 +61,28 @@ public class Packet {
 	public void addBoolean(boolean b) {
 		increaseCapacity(1);
 		if (b) {
-			data[pos++] = 0x01;
+			data[pos++] = TRUE;
 		} else {
-			data[pos++] = 0x00;
+			data[pos++] = FALSE;
 		}
 	}
 	
 	public void addByte(byte b) {
 		increaseCapacity(2);
-		data[pos++] = 0x02;
+		data[pos++] = BYTE;
 		data[pos++] = b;
 	}
 	
 	public void addShort(short s) {
 		increaseCapacity(3);
-		data[pos++] = 0x03;
+		data[pos++] = SHORT;
 		data[pos++] = (byte) (s >> 8);
 		data[pos++] = (byte) (s >> 0);
 	}
 	
 	public void addInt(int i) {
 		increaseCapacity(5);
-		data[pos++] = 0x04;
+		data[pos++] = INTEGER;
 		data[pos++] = (byte) (i >> 24);
 		data[pos++] = (byte) (i >> 16);
 		data[pos++] = (byte) (i >> 8);
@@ -90,7 +93,7 @@ public class Packet {
 		increaseCapacity(5);
 		ByteBuffer buf = ByteBuffer.allocate(4);
 		buf.putFloat(f);
-		data[pos++] = 0x05;
+		data[pos++] = FLOAT;
 		data[pos++] = buf.get(0);
 		data[pos++] = buf.get(1);
 		data[pos++] = buf.get(2);
@@ -99,7 +102,7 @@ public class Packet {
 	
 	public void addString(String s) {
 		increaseCapacity(3 + s.length());
-		data[pos++] = 0x06;
+		data[pos++] = STRING;
 		data[pos++] = (byte) (s.length() >> 8);
 		data[pos++] = (byte) (s.length() >> 0);
 		for(int i = 0; i < s.length(); i++) {
@@ -109,7 +112,7 @@ public class Packet {
 	
 	public void addLong(long l) {
 		increaseCapacity(9);
-		data[pos++] = 0x07;
+		data[pos++] = LONG;
 		data[pos++] = (byte) (l >> 56);
 		data[pos++] = (byte) (l >> 48);
 		data[pos++] = (byte) (l >> 40);
@@ -121,23 +124,21 @@ public class Packet {
 	}
 	
 	public boolean getBoolean() {
-		byte b = data[pos++];
-		if(b == 0x01) {
-			return true;
-		}
-		return false;
+		byte b = data[pos];
+		
+		return b == TRUE;
 	}
 	
 	public byte getByte() {
-		if(data[pos++] != 0x02) {
 			return -1;
+		if(data[pos] != BYTE) {
 		}
 		return data[pos++];
 	}
 	
 	public short getShort() {
-		if (data[pos++] != 0x03) {
 			return -1;
+		if (data[pos] != SHORT) {
 		}
 		byte[] b = new byte[2];
 		b[0] = data[pos++];
@@ -146,8 +147,8 @@ public class Packet {
 	}
 	
 	public int getInt() {
-		if (data[pos++] != 0x04) {
 			return -1;
+		if (data[pos] != INTEGER) {
 		}
 		byte[] b = new byte[4];
 		b[0] = data[pos++];
@@ -162,8 +163,8 @@ public class Packet {
 	}
 	
 	public float getFloat() {
-		if (data[pos++] != 0x05) {
 			return -1;
+		if (data[pos] != FLOAT) {
 		}
 		ByteBuffer buf = ByteBuffer.allocate(4);
 		buf.put(data[pos++]);
@@ -176,7 +177,7 @@ public class Packet {
 	
 	public String getString() {
 		String s = "";
-		if(data[pos++] != 0x06) {
+		if(data[pos] != STRING) {
 			return null;
 		}
 		int length = (data[pos++] << 8) | (data[pos++]);
@@ -187,8 +188,8 @@ public class Packet {
 	}
 	
 	public long getLong() {
-		if (data[pos++] != 0x07) {
 			return -1;
+		if (data[pos] != LONG) {
 		}
 		
 		long l = 0;
