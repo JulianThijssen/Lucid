@@ -12,7 +12,7 @@ public class PacketTest {
 	public void test() {
 		// Integer test
 		for (int a = 0; a < 100000; a += 100) {
-			Packet packet = new Packet(0);
+			Packet packet = new Packet((short) 0);
 			
 			packet.addInt(a);
 			packet.reset();
@@ -25,7 +25,7 @@ public class PacketTest {
 		
 		// Float test
 		for (float a = 0; a < 100000; a += 100) {
-			Packet packet = new Packet(0);
+			Packet packet = new Packet((short) 0);
 			
 			packet.addFloat(a);
 			packet.reset();

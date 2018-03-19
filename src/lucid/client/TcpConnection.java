@@ -50,7 +50,7 @@ public class TcpConnection implements Runnable {
 			channel.connect(new InetSocketAddress(host, port));
 			channel.setOption(StandardSocketOptions.TCP_NODELAY, true);
 			
-			Packet packet = new Packet(0);
+			Packet packet = new Packet((short) 0);
 			packet.addLong(UniqueGenerator.unique);
 			send(packet);
 			read();

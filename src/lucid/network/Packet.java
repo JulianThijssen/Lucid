@@ -22,8 +22,12 @@ public class Packet {
 	private static final byte STRING  = 6;
 	private static final byte LONG    = 7;
 	
-	/* Type of the packet */
-	private int type = -1;
+	/**
+	 * Type of the packet
+	 * Type is a short because normal use of this library
+	 * should easily have less than 65535 types of packets.
+	 */
+	private short type = -1;
 	
 	/* The address the packet originated from */
 	private InetSocketAddress address = null;
@@ -34,11 +38,12 @@ public class Packet {
 	/* Holds all the data in a packet */
 	private byte[] data = null;
 	
-	public Packet(int type) {
+	
+	public Packet(short type) {
 		this.type = type;
 	}
 	
-	public int getType() {
+	public short getType() {
 		return type;
 	}
 	
@@ -215,19 +220,22 @@ public class Packet {
 	}
 	
 	public byte[] getData() {
-		byte b[] = new byte[getLength() + 3];
-		b[0] = (byte) type;
-		b[1] = (byte) (getLength() >> 8);
-		b[2] = (byte) (getLength() >> 0);
+		byte b[] = new byte[getLength() + 4];
+		b[0] = (byte) (type >> 8);
+		b[1] = (byte) (type >> 0);
+		
+		b[2] = (byte) (getLength() >> 8);
+		b[3] = (byte) (getLength() >> 0);
+		
 		for(int i = 0; i < getLength(); i++) {
-			b[3 + i] = data[i];
+			b[4 + i] = data[i];
 		}
 		return b;
 	}
 	
 	public static Packet fromByteBuffer(ByteBuffer buffer) {
-		int type = buffer.get();
 		if (type == -1) {
+			short type = buffer.getShort();
 			return null;
 		}
 		
@@ -244,7 +252,7 @@ public class Packet {
 	}
 	
 	public static ByteBuffer toByteBuffer(Packet packet) {
-		ByteBuffer buffer = ByteBuffer.allocate(packet.getLength() + 3);
+		ByteBuffer buffer = ByteBuffer.allocate(packet.getLength() + 4);
 		byte[] data = packet.getData();
 		buffer.put(data);
 		buffer.flip();
