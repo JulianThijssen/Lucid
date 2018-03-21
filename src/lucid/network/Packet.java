@@ -1,7 +1,12 @@
 package lucid.network;
 
 import java.net.InetSocketAddress;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+
+import lucid.exceptions.PacketException;
+import lucid.util.Log;
+import lucid.util.LogLevel;
 
 /**
  * 
@@ -29,13 +34,13 @@ public class Packet {
 	 */
 	private short type = -1;
 	
-	/* The address the packet originated from */
+	/** The address the packet originated from */
 	private InetSocketAddress address = null;
 	
-	/* Position of the mark in the array */
+	/** Position of the mark in the array */
 	private int pos = 0;
 	
-	/* Holds all the data in a packet */
+	/** Holds all the data in a packet */
 	private byte[] data = null;
 	
 	
@@ -61,6 +66,15 @@ public class Packet {
 	
 	public void reset() {
 		pos = 0;
+	}
+	
+	private void increaseCapacity(int delta) {
+		if(data == null) {data = new byte[delta]; return;}
+		byte[] b = new byte[getLength() + delta];
+		for(int i = 0; i < getLength(); i++) {
+			b[i] = data[i];
+		}
+		data = b;
 	}
 	
 	private void incrementPosition(int offset) {
@@ -230,15 +244,6 @@ public class Packet {
 		return l;
 	}
 	
-	public void increaseCapacity(int delta) {
-		if(data == null) {data = new byte[delta]; return;}
-		byte[] b = new byte[getLength() + delta];
-		for(int i = 0; i < getLength(); i++) {
-			b[i] = data[i];
-		}
-		data = b;
-	}
-	
 	public byte[] getData() {
 		byte b[] = new byte[getLength() + 4];
 		b[0] = (byte) (type >> 8);
@@ -251,6 +256,10 @@ public class Packet {
 			b[4 + i] = data[i];
 		}
 		return b;
+	}
+	
+	public void setData(byte[] b) {
+		data = b;
 	}
 	
 	public static Packet fromByteBuffer(ByteBuffer buffer) {
@@ -280,18 +289,14 @@ public class Packet {
 		return buffer;
 	}
 	
-	public void setData(byte[] b) {
-		data = b;
-	}
-	
 	//Turns the packet into string form
 	@Override
 	public String toString() {
-		String s = "";
-		s = s + String.format("Type: %02X \n Data: ", type);
+		StringBuilder sb = new StringBuilder();
+		sb.append(String.format("Type: %04X \n Data: ", type));
 		for(int i = 0; i < getLength(); i++) {
-			s = s + String.format("%02X ", data[i]);
+			sb.append(String.format("%02X ", data[i]));
 		}
-		return s;
+		return sb.toString();
 	}
 }
