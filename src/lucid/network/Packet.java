@@ -132,8 +132,13 @@ public class Packet {
 		data[pos++] = (byte) (l >> 0);
 	}
 	
-	public boolean getBoolean() {
+	public boolean getBoolean() throws PacketException {
 		byte b = data[pos];
+		
+		if (b != FALSE && b != TRUE) {
+			throw new PacketException("Tried to read boolean at position: " + pos);
+		}
+		incrementPosition(1);
 		
 		return b == TRUE;
 	}
