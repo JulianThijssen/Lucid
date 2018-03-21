@@ -220,7 +220,7 @@ public class Packet {
 		
 		int shift = 56;
 		for (int i = 0; i < 8; i++) {
-			byte b = data[pos++];
+			byte b = data[pos+1+i];
 			long mask = 0x00000000000000FFL << shift;
 			l |= (((long) b) << shift) & mask;
 			shift -= 8;
