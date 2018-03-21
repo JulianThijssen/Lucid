@@ -162,7 +162,7 @@ public class Packet {
 		b[1] = data[pos+2];
 		
 		incrementPosition(3);
-		return (short) (b[0] << 8 | b[1] << 0);
+		return (short) (b[0] << 8  & 0x0000FF00 | b[1] << 0 & 0x000000FF);
 	}
 	
 	public int getInt() throws PacketException {
