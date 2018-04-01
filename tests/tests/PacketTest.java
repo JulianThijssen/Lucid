@@ -1,4 +1,4 @@
-package standalone_tests;
+package tests;
 
 import static org.junit.Assert.*;
 

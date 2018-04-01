@@ -1,4 +1,5 @@
-package tests;
+package tests.helper;
+import lucid.exceptions.PacketException;
 import lucid.network.Connection;
 import lucid.network.Packet;
 import lucid.network.Server;
@@ -33,8 +34,12 @@ public class TcpTestServer extends Server implements ServerListener {
 
 	@Override
 	public void onReceived(Connection connection, Packet packet) {
-		System.out.println("Receive on TcpTestServer: " + packet.getString());
-		Packet p = new Packet(2);
+		try {
+			System.out.println("Receive on TcpTestServer: " + packet.getString());
+		} catch (PacketException e) {
+			e.printStackTrace();
+		}
+		Packet p = new Packet((short) 2);
 		p.addString("Reply");
 		connection.sendTcp(p);
 	}

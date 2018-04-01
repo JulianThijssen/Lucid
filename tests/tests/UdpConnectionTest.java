@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 import lucid.client.NetworkListener;
 import lucid.client.UdpConnection;
 import lucid.network.Packet;
+import tests.helper.UdpTestServer;
 
 import org.junit.Test;
 
@@ -17,7 +18,7 @@ public class UdpConnectionTest implements NetworkListener {
 		
 		server.start();
 
-		Packet packet = new Packet(1);
+		Packet packet = new Packet((short) 1);
 		packet.addString("UDP Test Packet");
 		
 		UdpConnection udp = new UdpConnection();

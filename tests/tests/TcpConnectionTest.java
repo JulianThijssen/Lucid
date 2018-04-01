@@ -2,16 +2,18 @@ package tests;
 
 import static org.junit.Assert.*;
 import lucid.client.TcpConnection;
+import lucid.exceptions.ConnectionException;
 import lucid.network.Packet;
 import lucid.util.Log;
 import lucid.util.LogLevel;
+import tests.helper.TcpTestServer;
 
 import org.junit.Test;
 
 public class TcpConnectionTest {
 
 	@Test
-	public void testTcpConnection() {
+	public void testTcpConnection() throws ConnectionException {
 		Log.listenLevel = LogLevel.NONE;
 		
 		System.out.println("Starting TcpConnectionTest...");
@@ -20,7 +22,7 @@ public class TcpConnectionTest {
 		server.start();
 		
 		for (int i = 0; i < 150; i++) {
-			Packet packet = new Packet(1);
+			Packet packet = new Packet((short) 1);
 			packet.addString("Packet " + i);
 			
 			TcpConnection connection = new TcpConnection();

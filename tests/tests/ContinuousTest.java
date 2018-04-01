@@ -3,9 +3,11 @@ package tests;
 import lucid.client.NetworkListener;
 import lucid.client.TcpConnection;
 import lucid.client.UdpConnection;
+import lucid.exceptions.ConnectionException;
 import lucid.network.Packet;
 import lucid.util.Log;
 import lucid.util.LogLevel;
+import tests.helper.SpamUdpTestServer;
 
 public class ContinuousTest implements NetworkListener {
 	long time = System.currentTimeMillis();
@@ -23,7 +25,12 @@ public class ContinuousTest implements NetworkListener {
 		System.out.println("Preconnect");
 		TcpConnection tcp = new TcpConnection();
 		tcp.addListener(this);
-		tcp.connect("127.0.0.1", 4444);
+		try {
+			tcp.connect("127.0.0.1", 4444);
+		} catch (ConnectionException e) {
+			e.printStackTrace();
+			return;
+		}
 		UdpConnection udp = new UdpConnection();
 		udp.addListener(this);
 		udp.connect("127.0.0.1", 4445);

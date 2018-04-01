@@ -1,5 +1,8 @@
-package tests;
+package tests.helper;
 
+import static org.junit.Assert.fail;
+
+import lucid.exceptions.PacketException;
 import lucid.network.Connection;
 import lucid.network.Packet;
 import lucid.network.Server;
@@ -13,7 +16,7 @@ public class SpamUdpTestServer extends Server implements ServerListener {
 	public SpamUdpTestServer(int tcpPort, int udpPort) {
 		super(tcpPort, udpPort);
 		addListener(this);
-		packet = new Packet(0);
+		packet = new Packet((short) 0);
 		packet.addString("UDP Test Packet");
 	}
 
@@ -44,8 +47,12 @@ public class SpamUdpTestServer extends Server implements ServerListener {
 
 	@Override
 	public void onReceived(Connection connection, Packet packet) {
-		System.out.println("[Server] Receive: " + packet.getString());
-		Packet p = new Packet(0);
+		try {
+			System.out.println("[Server] Receive: " + packet.getString());
+		} catch (PacketException e) {
+			e.printStackTrace();
+		}
+		Packet p = new Packet((short) 0);
 		p.addString("Reply");
 		connection.sendUdp(p);
 	}

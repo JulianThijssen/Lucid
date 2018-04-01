@@ -1,4 +1,5 @@
-package tests;
+package tests.helper;
+import lucid.exceptions.PacketException;
 import lucid.network.Connection;
 import lucid.network.Packet;
 import lucid.network.Server;
@@ -36,8 +37,12 @@ public class UdpTestServer extends Server implements ServerListener {
 
 	@Override
 	public void onReceived(Connection connection, Packet packet) {
+		try {
 		System.out.println("[Server] Receive: " + packet.getString());
-		Packet p = new Packet(2);
+		} catch (PacketException e) {
+			e.printStackTrace();
+		}
+		Packet p = new Packet((short) 2);
 		p.addString("Reply");
 		connection.sendUdp(p);
 	}
