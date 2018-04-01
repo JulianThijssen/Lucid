@@ -84,66 +84,73 @@ public class Packet {
 	public void addBoolean(boolean b) {
 		increaseCapacity(1);
 		if (b) {
-			data[pos++] = TRUE;
+			data[pos] = TRUE;
 		} else {
-			data[pos++] = FALSE;
+			data[pos] = FALSE;
 		}
+		pos += 1;
 	}
 	
 	public void addByte(byte b) {
 		increaseCapacity(2);
-		data[pos++] = BYTE;
-		data[pos++] = b;
+		data[pos] = BYTE;
+		data[pos+1] = b;
+		pos += 2;
 	}
 	
 	public void addShort(short s) {
 		increaseCapacity(3);
-		data[pos++] = SHORT;
-		data[pos++] = (byte) (s >> 8);
-		data[pos++] = (byte) (s >> 0);
+		data[pos] = SHORT;
+		data[pos+1] = (byte) (s >> 8);
+		data[pos+2] = (byte) (s >> 0);
+		pos += 3;
 	}
 	
 	public void addInt(int i) {
 		increaseCapacity(5);
-		data[pos++] = INTEGER;
-		data[pos++] = (byte) (i >> 24);
-		data[pos++] = (byte) (i >> 16);
-		data[pos++] = (byte) (i >> 8);
-		data[pos++] = (byte) (i >> 0);
+		data[pos] = INTEGER;
+		data[pos+1] = (byte) (i >> 24);
+		data[pos+2] = (byte) (i >> 16);
+		data[pos+3] = (byte) (i >> 8);
+		data[pos+4] = (byte) (i >> 0);
+		pos += 5;
 	}
 	
 	public void addFloat(float f) {
 		increaseCapacity(5);
 		ByteBuffer buf = ByteBuffer.allocate(4);
 		buf.putFloat(f);
-		data[pos++] = FLOAT;
-		data[pos++] = buf.get(0);
-		data[pos++] = buf.get(1);
-		data[pos++] = buf.get(2);
-		data[pos++] = buf.get(3);
+		data[pos] = FLOAT;
+		data[pos+1] = buf.get(0);
+		data[pos+2] = buf.get(1);
+		data[pos+3] = buf.get(2);
+		data[pos+4] = buf.get(3);
+		pos += 5;
 	}
 	
 	public void addString(String s) {
 		increaseCapacity(3 + s.length());
-		data[pos++] = STRING;
-		data[pos++] = (byte) (s.length() >> 8);
-		data[pos++] = (byte) (s.length() >> 0);
+		data[pos] = STRING;
+		data[pos+1] = (byte) (s.length() >> 8);
+		data[pos+2] = (byte) (s.length() >> 0);
 		for(int i = 0; i < s.length(); i++) {
-			data[pos++] = (byte) s.charAt(i);
+			data[pos+3+i] = (byte) s.charAt(i);
 		}
+		pos += 3 + s.length();
 	}
 	
 	public void addLong(long l) {
 		increaseCapacity(9);
-		data[pos++] = LONG;
-		data[pos++] = (byte) (l >> 56);
-		data[pos++] = (byte) (l >> 48);
-		data[pos++] = (byte) (l >> 40);
-		data[pos++] = (byte) (l >> 32);
-		data[pos++] = (byte) (l >> 24);
-		data[pos++] = (byte) (l >> 16);
-		data[pos++] = (byte) (l >> 8);
-		data[pos++] = (byte) (l >> 0);
+		data[pos] = LONG;
+		data[pos+1] = (byte) (l >> 56);
+		data[pos+2] = (byte) (l >> 48);
+		data[pos+3] = (byte) (l >> 40);
+		data[pos+4] = (byte) (l >> 32);
+		data[pos+5] = (byte) (l >> 24);
+		data[pos+6] = (byte) (l >> 16);
+		data[pos+7] = (byte) (l >> 8);
+		data[pos+8] = (byte) (l >> 0);
+		pos += 9;
 	}
 	
 	public boolean getBoolean() throws PacketException {
