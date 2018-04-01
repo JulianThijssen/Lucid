@@ -9,11 +9,12 @@ import lucid.util.Log;
 import lucid.util.LogLevel;
 
 /**
+ * Packet class designed to be transferred over TcpConnection or UdpConnection.
  * 
  * @author Julian Thijssen
  */
 
-public class Packet {
+public class Packet {	
 	/**
 	 * The packet format specifies each piece of data must be preceded by a byte indicating its type.
 	 * Below follows a list of these types and their values:
@@ -67,6 +68,11 @@ public class Packet {
 		this.address = address;
 	}
 	
+	/**
+	 * Get the length of the packet's data buffer.
+	 * The returned length excludes the packet header.
+	 * @return The length of the packet's data buffer
+	 */
 	public int getLength() {
 		return data != null ? data.length : 0;
 	}
@@ -80,6 +86,14 @@ public class Packet {
 		if (getLength() + delta > MAX_PACKET_SIZE) {
 			return;
 		}
+		
+		// If data size is 0, create a new array with the given delta
+		if(data == null) {
+			data = new byte[delta];
+			return;
+		}
+		
+		// Increase byte array size by delta and copy over data
 		byte[] b = new byte[getLength() + delta];
 		for(int i = 0; i < getLength(); i++) {
 			b[i] = data[i];
@@ -91,6 +105,11 @@ public class Packet {
 		pos += offset;
 	}
 	
+	/**
+	 * Adds a boolean to the packet data buffer.
+	 * This increases the size of the packet by 1 byte.
+	 * @param b the boolean to add
+	 */
 	public void addBoolean(boolean b) {
 		increaseCapacity(1);
 		if (b) {
@@ -101,6 +120,11 @@ public class Packet {
 		pos += 1;
 	}
 	
+	/**
+	 * Adds a byte to the packet data buffer.
+	 * This increases the size of the packet by 2 bytes.
+	 * @param b the byte to add
+	 */
 	public void addByte(byte b) {
 		increaseCapacity(2);
 		data[pos] = BYTE;
@@ -108,6 +132,11 @@ public class Packet {
 		pos += 2;
 	}
 	
+	/**
+	 * Adds a short to the packet data buffer.
+	 * This increases the size of the packet by 3 bytes.
+	 * @param s the short to add
+	 */
 	public void addShort(short s) {
 		increaseCapacity(3);
 		data[pos] = SHORT;
@@ -116,6 +145,11 @@ public class Packet {
 		pos += 3;
 	}
 	
+	/**
+	 * Adds an integer to the packet data buffer.
+	 * This increases the size of the packet by 5 bytes.
+	 * @param i the integer to add
+	 */
 	public void addInt(int i) {
 		increaseCapacity(5);
 		data[pos] = INTEGER;
@@ -126,6 +160,11 @@ public class Packet {
 		pos += 5;
 	}
 	
+	/**
+	 * Adds a float to the packet data buffer.
+	 * This increases the size of the packet by 5 bytes.
+	 * @param f the float to add
+	 */
 	public void addFloat(float f) {
 		increaseCapacity(5);
 		ByteBuffer buf = ByteBuffer.allocate(4);
@@ -138,6 +177,12 @@ public class Packet {
 		pos += 5;
 	}
 	
+	/**
+	 * Adds a string to the packet data buffer.
+	 * This increases the size of the packet by 3 bytes
+	 * plus a byte for every string character.
+	 * @param s the string to add
+	 */
 	public void addString(String s) {
 		increaseCapacity(3 + s.length());
 		data[pos] = STRING;
@@ -149,6 +194,11 @@ public class Packet {
 		pos += 3 + s.length();
 	}
 	
+	/**
+	 * Adds a long to the packet data buffer.
+	 * This increases the size of the packet by 9 bytes.
+	 * @param l the long to add
+	 */
 	public void addLong(long l) {
 		increaseCapacity(9);
 		data[pos] = LONG;
