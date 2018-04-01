@@ -9,6 +9,8 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
 import lucid.Config;
+import lucid.exceptions.PacketException;
+import lucid.exceptions.TcpReadException;
 import lucid.util.Log;
 import lucid.util.LogLevel;
 
@@ -36,22 +38,30 @@ public class ServerTcpChannel {
 	
 	public TcpConnection accept() throws IOException {
 		SocketChannel client = channel.accept();
-		//client.configureBlocking(false);
 		client.setOption(StandardSocketOptions.TCP_NODELAY, true);
 		
 		TcpConnection connection = new TcpConnection(client);
-		
 		try {
 			connection.read();
-		} catch (Exception e) {
+		} catch (TcpReadException e) {
+			Log.debug(LogLevel.ERROR, e.getMessage());
 			connection.close();
 			return null;
 		}
-		Packet handshake = connection.getPacket();
 		
+		Packet handshake = connection.getPacket();
 		Log.debug(LogLevel.SPACKET, "Handshake: " + handshake);
 		
-		connection.setUnique(handshake.getLong());
+		long unique = 0;
+		try {
+			unique = handshake.getLong();
+		} catch (PacketException e) {
+			Log.debug(LogLevel.ERROR, e.getMessage());
+			connection.close();
+			return null;
+		}
+		
+		connection.setUnique(unique);
 		connection.send(handshake);
 		
 		connection.getChannel().configureBlocking(false);
