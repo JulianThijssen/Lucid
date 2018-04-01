@@ -50,57 +50,59 @@ public class PacketBuffer {
 		return bytesRead;
 	}
 	
-	public int readTcp(SocketChannel channel) throws AsynchronousCloseException, Exception {
-		int bytesRead = 0;
-		in.clear();
-		
-		channel.read(in);
-		bytesRead = in.position();
-		
-		if (bytesRead == 0) {
-			throw new AsynchronousCloseException();
-		}
+	/**
+	 * Reads a number of bytes from the channel and store it as a packet in the buffer.
+	 * @param channel The channel to read from
+	 * @return The number of bytes read
+	 * @throws TcpReadException If reading from the channel failed
+	 */
+	public int readTcp(SocketChannel channel) throws TcpReadException {
+		try {
+			int bytesRead = channel.read(in);
 
-		in.flip();
-		
-		Packet packet = null;
-		do {
-			packet = extract(in);
-			if (packet != null) {
+			if (bytesRead == 0) {
+				return 0;
+			}
+			if (bytesRead < 0) {
+				throw new TcpReadException("TCP channel reached end-of-stream.");
+			}
+			
+			// Flip the buffer to set the limit to the number of bytes received
+			in.flip();
+
+			Packet packet = null;
+			while (in.remaining() > 0 && (packet = Packet.fromByteBuffer(in)) != null) {
 				boolean added = packets.offer(packet);
 
 				if (!added) {
 					Log.debug(LogLevel.ERROR, "The input packet buffers capacity has been exceeded." + " : " + source);
 				}
 			}
-		} while (packet != null);
-		return bytesRead;
-	}
-	
-	private Packet extract(ByteBuffer in) {
-		try {
-			if (in.position() == in.limit()) {
-				return null;
+			
+			// Check if we reached end-of-stream or if there is still a fragment of a packet left
+			if (in.remaining() > 0) {
+				// Copy remaining fragment of packet to start of buffer
+				byte[] toCopy = new byte[in.remaining()];
+				in.get(toCopy);
+				in.clear();
+				in.put(toCopy);
 			}
-
-			int type = in.get();
-			if (type == -1) {
-				return null;
+			else {
+				// End-of-stream reached, clear buffer
+				in.clear();
 			}
-
-			int len = in.getShort();
-
-			Packet packet = new Packet(type);
-			byte[] b = new byte[len];
-			for(int i = 0; i < len; i++) {
-				b[i] = in.get();
-			}
-			packet.setData(b);
-
-			return packet;
-		} catch(BufferUnderflowException e) {
-			Log.debug(LogLevel.ERROR, "Received a broken packet" + " : " + source);
-			return null;
+			
+			return bytesRead;
+		} catch (NotYetConnectedException e) {
+			throw new TcpReadException("Tried to read from an unconnected TCP channel.");
+		} catch (ClosedByInterruptException e) {
+			throw new TcpReadException("Thread got interrupted while reading from TCP channel.");
+		} catch (AsynchronousCloseException e) {
+			throw new TcpReadException("Another thread closed TCP channel while reading.");
+		} catch (ClosedChannelException e) {
+			throw new TcpReadException("Tried to read from a closed TCP channel.");
+		} catch (IOException e) {
+			throw new TcpReadException("An IO exception occurred while reading from TCP channel.");
 		}
 	}
 }
