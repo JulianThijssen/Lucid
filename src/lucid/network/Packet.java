@@ -337,21 +337,32 @@ public class Packet {
 	}
 	
 	public static Packet fromByteBuffer(ByteBuffer buffer) {
-		if (type == -1) {
-			short type = buffer.getShort();
+		short type = -1;
+		short len = -1;
+		
+		try {
+			type = buffer.getShort();
+			len = buffer.getShort();
+			
+			// Check if packet is complete
+			if (len > buffer.remaining()) {
+				// Packet not complete, push back position by header size
+				buffer.position(buffer.position() - HEADER_SIZE);
+				return null;
+			}
+			
+			Packet packet = new Packet(type);
+			byte[] b = new byte[len];
+			buffer.get(b);
+			packet.setData(b);
+
+			return packet;
+		} catch(BufferUnderflowException e) {
+			Log.debug(LogLevel.ERROR, "Received a broken packet");
+			Log.debug(LogLevel.ERROR, "Type: " + type + " Length: " + len);
+			Log.debug(LogLevel.ERROR, "Buffer info: " + buffer.toString());
 			return null;
 		}
-		
-		int len = buffer.getShort();
-		
-		Packet packet = new Packet(type);
-		byte[] b = new byte[len];
-		for(int i = 0; i < len; i++) {
-			b[i] = buffer.get();
-		}
-		packet.setData(b);
-		
-		return packet;
 	}
 	
 	public static ByteBuffer toByteBuffer(Packet packet) {
