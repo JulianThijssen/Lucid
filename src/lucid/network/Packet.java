@@ -28,6 +28,13 @@ public class Packet {
 	private static final byte LONG    = 7;
 	
 	/**
+	 * The maximum number of bytes allowed to be in a single packet.
+	 * This number can be increased if you know what you are doing,
+	 * but you are probably better off dividing your payload.
+	 */
+	public static int MAX_PACKET_SIZE = 1024;
+	
+	/**
 	 * Type of the packet
 	 * Type is a short because normal use of this library
 	 * should easily have less than 65535 types of packets.
@@ -69,7 +76,10 @@ public class Packet {
 	}
 	
 	private void increaseCapacity(int delta) {
-		if(data == null) {data = new byte[delta]; return;}
+		// Check if increasing the capacity violates the packet size constraints
+		if (getLength() + delta > MAX_PACKET_SIZE) {
+			return;
+		}
 		byte[] b = new byte[getLength() + delta];
 		for(int i = 0; i < getLength(); i++) {
 			b[i] = data[i];
