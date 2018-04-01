@@ -29,6 +29,11 @@ public class Packet {
 	private static final byte LONG    = 7;
 	
 	/**
+	 * Size in bytes of the packet header.
+	 */
+	public static final int HEADER_SIZE = 4;
+	
+	/**
 	 * The maximum number of bytes allowed to be in a single packet.
 	 * This number can be increased if you know what you are doing,
 	 * but you are probably better off dividing your payload.
@@ -83,7 +88,7 @@ public class Packet {
 	
 	private void increaseCapacity(int delta) {
 		// Check if increasing the capacity violates the packet size constraints
-		if (getLength() + delta > MAX_PACKET_SIZE) {
+		if (HEADER_SIZE + getLength() + delta > MAX_PACKET_SIZE) {
 			return;
 		}
 		
