@@ -37,6 +37,8 @@ public class Packet {
 	 * The maximum number of bytes allowed to be in a single packet.
 	 * This number can be increased if you know what you are doing,
 	 * but you are probably better off dividing your payload.
+	 * Higher max sizes may result in unstable behaviour and the
+	 * absolute max is MAX_SHORT (32767).
 	 */
 	public static int MAX_PACKET_SIZE = 1024;
 	
