@@ -31,6 +31,8 @@ public class PacketBuffer {
 		in = ByteBuffer.allocate(capacity);
 	}
 	
+	public boolean hasPackets() {
+		return packets.size() > 0;
 	}
 	
 	public Packet get() {
