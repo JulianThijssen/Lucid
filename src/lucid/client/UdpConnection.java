@@ -60,7 +60,7 @@ public class UdpConnection implements Runnable {
 	
 	private boolean handshake(InetSocketAddress address) {
 		try {
-			Packet hPacket = new Packet(0);
+			Packet hPacket = new Packet((short) 0);
 			hPacket.addLong(UniqueGenerator.unique);
 			
 			ByteBuffer hOut = Packet.toByteBuffer(hPacket);

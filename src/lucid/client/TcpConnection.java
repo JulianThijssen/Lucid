@@ -6,8 +6,6 @@ import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.AlreadyConnectedException;
-import java.nio.channels.AsynchronousCloseException;
-import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ConnectionPendingException;
 import java.nio.channels.SocketChannel;
@@ -17,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import lucid.exceptions.ConnectionException;
+import lucid.exceptions.TcpReadException;
 import lucid.network.Packet;
 import lucid.network.PacketBuffer;
 import lucid.util.Log;
@@ -49,7 +48,7 @@ public class TcpConnection implements Runnable {
 			channel = SocketChannel.open();
 			channel.connect(new InetSocketAddress(host, port));
 			channel.setOption(StandardSocketOptions.TCP_NODELAY, true);
-			
+
 			Packet packet = new Packet((short) 0);
 			packet.addLong(UniqueGenerator.unique);
 			send(packet);
@@ -125,10 +124,8 @@ public class TcpConnection implements Runnable {
 	private void read() {
 		try {
 			in.readTcp(channel);
-		} catch (AsynchronousCloseException e) {
-			// Silently continue
-		} catch (Exception e) {
-			e.printStackTrace();
+		} catch (TcpReadException e) {
+			Log.debug(LogLevel.ERROR, e.getMessage());
 			close();
 		}
 	}
