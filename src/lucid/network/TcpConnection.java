@@ -53,11 +53,11 @@ public class TcpConnection {
 		return in.get();
 	}
 	
-	public void read() throws Exception {
-		if (!channel.isConnected()) {
-			close();
-		}
-
+	/**
+	 * Read from the TCP channel of this connection.
+	 * @throws TcpReadException If reading from the channel failed
+	 */
+	public void read() throws TcpReadException {
 		in.readTcp(channel);
 	}
 	
