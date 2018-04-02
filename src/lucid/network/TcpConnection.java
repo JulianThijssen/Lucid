@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 import lucid.Config;
+import lucid.exceptions.TcpReadException;
 import lucid.util.Log;
 import lucid.util.LogLevel;
 
@@ -64,6 +65,12 @@ public class TcpConnection {
 	public void send(Packet packet) {
 		if (connected) {
 			try {
+				byte[] b = packet.getData();
+				int spaceLeft = out.capacity() - out.position();
+				if (b.length > spaceLeft) {
+					Log.debug(LogLevel.ERROR, "Packet doesn't fit into buffer");
+					return;
+				}
 				out.put(packet.getData());
 				out.flip();
 				channel.write(out);
