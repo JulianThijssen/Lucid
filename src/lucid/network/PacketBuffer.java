@@ -19,9 +19,15 @@ public class PacketBuffer {
 	
 	public String source = null;
 	
-	public PacketBuffer(int capacity, String source) {
-		in = ByteBuffer.allocate(capacity);
+	public PacketBuffer(String source) {
+		this(source, Packet.MAX_PACKET_SIZE);
+	}
+	
+	public PacketBuffer(String source, int capacity) {
 		this.source = source;
+		in = ByteBuffer.allocate(capacity);
+	}
+	
 	}
 	
 	public Packet get() {

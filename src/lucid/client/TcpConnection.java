@@ -32,10 +32,10 @@ public class TcpConnection implements Runnable {
 	private SocketChannel channel;
 	
 	/** The channel input buffer */
-	private PacketBuffer in = new PacketBuffer(1024, "TCP Client " + id);
+	private PacketBuffer in = new PacketBuffer("TCP Client " + id, 1024); // FIXME size
 	
 	/** The channel output buffer */
-	private ByteBuffer out = ByteBuffer.allocate(1024);
+	private ByteBuffer out = ByteBuffer.allocate(1024); // FIXME size
     
     /** Whether the client is listening or not */
     private boolean connected = false;

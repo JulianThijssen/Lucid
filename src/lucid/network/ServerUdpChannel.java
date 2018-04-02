@@ -20,7 +20,7 @@ public class ServerUdpChannel {
 	private int port;
 	
 	/** The packet buffer that caches incoming packets */
-	private PacketBuffer in = new PacketBuffer(Config.READ_BUFFER, "UDP Server");
+	private PacketBuffer in = new PacketBuffer("UDP Server", Config.READ_BUFFER);
 	
 	/** The selector which will select when this channel is ready accept */
 	private Selector selector;

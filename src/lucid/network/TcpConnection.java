@@ -23,7 +23,7 @@ public class TcpConnection {
 	private SocketChannel channel;
 	
 	/** The packet buffer that caches incoming packets */
-	private PacketBuffer in = new PacketBuffer(Config.READ_BUFFER, "TCP server conn");
+	private PacketBuffer in = new PacketBuffer("TCP server conn", Config.READ_BUFFER);
 	
 	/** The channel output buffer */
 	private ByteBuffer out = ByteBuffer.allocate(Config.WRITE_BUFFER);

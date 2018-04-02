@@ -18,10 +18,10 @@ public class UdpConnection implements Runnable {
 	private DatagramChannel channel;
 	
 	/** The channel input buffer */
-	private PacketBuffer in = new PacketBuffer(1024, "UDP Client");
+	private PacketBuffer in = new PacketBuffer("UDP Client", 1024); // FIXME size
 	
 	/** The channel output buffer */
-	private ByteBuffer out = ByteBuffer.allocate(1024);
+	private ByteBuffer out = ByteBuffer.allocate(1024); // FIXME size
 	
 	private InetSocketAddress address = null;
     
