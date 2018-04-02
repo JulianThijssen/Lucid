@@ -2,14 +2,17 @@ package lucid.network;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousCloseException;
+import java.nio.channels.ClosedByInterruptException;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
+import java.nio.channels.NotYetConnectedException;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import lucid.exceptions.TcpReadException;
 import lucid.util.Log;
 import lucid.util.LogLevel;
 
@@ -35,18 +38,19 @@ public class PacketBuffer {
 	}
 	
 	public synchronized int readUdp(DatagramChannel channel) throws IOException {
-		int bytesRead = 0;
 		in.clear();
 
 		InetSocketAddress sourceAddress = (InetSocketAddress) channel.receive(in);
-		bytesRead = in.position();
-
-		in.flip();
+		int bytesRead = in.position();
+		
+		if (bytesRead <= 0) {
+			Log.debug(LogLevel.ERROR, "Failed to read bytes from UDP packet stream.");
+			throw new AsynchronousCloseException();
+		}
 		
 		Packet packet = null;
-
 		do {
-			packet = extract(in);
+			packet = Packet.fromByteBuffer(in);
 			if (packet != null) {
 				packet.setSource(sourceAddress);
 				packets.offer(packet);
