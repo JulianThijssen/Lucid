@@ -378,7 +378,7 @@ public class Packet {
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
-		sb.append(String.format("Type: %04X \n Data: ", type));
+		sb.append(String.format("Type: %02X \n Data: ", type));
 		for(int i = 0; i < getLength(); i++) {
 			sb.append(String.format("%02X ", data[i]));
 		}
