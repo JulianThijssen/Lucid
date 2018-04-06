@@ -319,7 +319,7 @@ public class Packet {
 	}
 	
 	public byte[] getData() {
-		byte b[] = new byte[getLength() + 4];
+		byte b[] = new byte[getLength() + HEADER_SIZE];
 		b[0] = (byte) (type >> 8);
 		b[1] = (byte) (type >> 0);
 		
@@ -327,7 +327,7 @@ public class Packet {
 		b[3] = (byte) (getLength() >> 0);
 		
 		for(int i = 0; i < getLength(); i++) {
-			b[4 + i] = data[i];
+			b[HEADER_SIZE + i] = data[i];
 		}
 		return b;
 	}
