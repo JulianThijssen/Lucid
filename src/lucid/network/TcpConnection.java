@@ -1,11 +1,10 @@
 package lucid.network;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-import lucid.Config;
 import lucid.exceptions.TcpReadException;
+import lucid.exceptions.TcpWriteException;
 import lucid.util.Log;
 import lucid.util.LogLevel;
 
@@ -21,24 +20,18 @@ public class TcpConnection {
 	private long unique = -1;
 	
 	/** The connection of the client to the server */
-	private SocketChannel channel;
-	
-	/** The packet buffer that caches incoming packets */
-	private PacketBuffer in = new PacketBuffer("TCP server conn", Config.READ_BUFFER);
-	
-	/** The channel output buffer */
-	private ByteBuffer out = ByteBuffer.allocate(Config.WRITE_BUFFER);
+	private TcpChannel channel;
 	
 	/** Whether the client is listening or not */
 	public boolean connected = false;
 
 	public TcpConnection(SocketChannel channel) {
-		this.channel = channel;
+		this.channel = new TcpChannel(channel);
 		
 		connected = true;
 	}
 	
-	public SocketChannel getChannel() {
+	public TcpChannel getChannel() {
 		return channel;
 	}
 	
@@ -51,7 +44,7 @@ public class TcpConnection {
 	}
 	
 	public Packet getPacket() {
-		return in.get();
+		return channel.receive();
 	}
 	
 	/**
@@ -59,27 +52,20 @@ public class TcpConnection {
 	 * @throws TcpReadException If reading from the channel failed
 	 */
 	public void read() throws TcpReadException {
-		in.readTcp(channel);
+		channel.read();
+	}
+	
+	public void write() throws TcpWriteException {
+		if (connected) {
+			if (channel.hasUnsentData()) {
+				channel.write();
+			}
+		}
 	}
 	
 	public void send(Packet packet) {
-		if (connected) {
-			try {
-				byte[] b = packet.getData();
-				int spaceLeft = out.capacity() - out.position();
-				if (b.length > spaceLeft) {
-					Log.debug(LogLevel.ERROR, "Packet doesn't fit into buffer");
-					return;
-				}
-				out.put(packet.getData());
-				out.flip();
-				channel.write(out);
-				out.clear();
-			} catch(IOException e) {
-				close();
-			}
-			Log.debug(LogLevel.SPACKET, "Sent to: " + unique + " , " + packet);
-		}
+		channel.send(packet);
+		Log.debug(LogLevel.SPACKET, "Sent to: " + unique + " , " + packet);
 	}
 
 	public void close() {

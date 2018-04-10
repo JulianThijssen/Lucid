@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
-import java.nio.ByteBuffer;
 import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ConnectionPendingException;
@@ -16,8 +15,9 @@ import java.util.List;
 
 import lucid.exceptions.ConnectionException;
 import lucid.exceptions.TcpReadException;
+import lucid.exceptions.TcpWriteException;
 import lucid.network.Packet;
-import lucid.network.PacketBuffer;
+import lucid.network.TcpChannel;
 import lucid.util.Log;
 import lucid.util.LogLevel;
 import lucid.util.UniqueGenerator;
@@ -28,13 +28,7 @@ public class TcpConnection implements Runnable {
 	private int id = sid;
 	
     /** The connection of the client to the server */
-	private SocketChannel channel;
-	
-	/** The channel input buffer */
-	private PacketBuffer in = new PacketBuffer("TCP Client " + id, 1024); // FIXME size
-	
-	/** The channel output buffer */
-	private ByteBuffer out = ByteBuffer.allocate(1024); // FIXME size
+	private TcpChannel channel;
     
     /** Whether the client is listening or not */
     private boolean connected = false;
@@ -45,9 +39,11 @@ public class TcpConnection implements Runnable {
 	public boolean connect(String host, int port) throws ConnectionException {
 		try {
 			Log.debug(LogLevel.CLIENT, String.format("Attempting to connect to host: %s at port %d", host, port));
-			channel = SocketChannel.open();
-			channel.connect(new InetSocketAddress(host, port));
-			channel.setOption(StandardSocketOptions.TCP_NODELAY, true);
+			SocketChannel socketChannel = SocketChannel.open();
+			socketChannel.connect(new InetSocketAddress(host, port));
+			socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
+			
+			channel = new TcpChannel(socketChannel);
 
 			Packet packet = new Packet((short) 0);
 			packet.addLong(UniqueGenerator.unique);
@@ -103,27 +99,25 @@ public class TcpConnection implements Runnable {
 
 		read();
 		
-		Packet packet = null;
-		
-		while ((packet = getPacket()) != null) {
+		while (channel.hasPackets()) {
+			Packet packet = getPacket();
 			notifyReceived(packet);
 		}
 	}
 	
 	public void send(Packet packet) {
+		channel.send(packet);
 		try {
-			out.put(packet.getData());
-			out.flip();
-			channel.write(out);
-			out.clear();
-		} catch(IOException e) {
+			channel.write();
+		} catch (TcpWriteException e) {
+			Log.debug(LogLevel.ERROR, e.getMessage());
 			close();
 		}
 	}
 	
 	private void read() {
 		try {
-			in.readTcp(channel);
+			channel.read();
 		} catch (TcpReadException e) {
 			Log.debug(LogLevel.ERROR, e.getMessage());
 			close();
@@ -131,7 +125,7 @@ public class TcpConnection implements Runnable {
 	}
 	
 	public Packet getPacket() {
-		return in.get();
+		return channel.receive();
 	}
 
 	public void notifyConnected() {
