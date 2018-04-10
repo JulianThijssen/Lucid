@@ -190,6 +190,24 @@ public abstract class Server implements Runnable {
 					}
 				}
 				
+				else if (key.isWritable()) {
+					Object attachment = key.attachment();
+					
+					if (attachment instanceof TcpConnection) {
+						TcpConnection tcp = (TcpConnection) attachment;
+						
+						try {
+							tcp.write();
+						} catch (TcpWriteException e) {
+							// The connection to this client broke, disconnect them
+							tcp.close();
+							key.cancel();
+							notifyDisconnection(connections.get(tcp.getUnique()));
+							removeConnection(tcp.getUnique());
+						}
+					}
+				}
+				
 				iterator.remove();
 			}
     	} catch(IOException e) {
