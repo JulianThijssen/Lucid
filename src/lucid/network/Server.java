@@ -9,6 +9,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import lucid.Config;
+import lucid.exceptions.ConnectionException;
+import lucid.exceptions.TcpWriteException;
 import lucid.util.Log;
 import lucid.util.LogLevel;
 
@@ -100,9 +102,9 @@ public abstract class Server implements Runnable {
 
 				if (key.isAcceptable()) {
 					if (connections.size() < Config.MAX_PLAYERS) {
-						TcpConnection tcp = tcpChannel.accept();
-						
-						if (tcp != null) {
+						try {
+							TcpConnection tcp = tcpChannel.accept();
+							
 							Connection connection = connections.get(tcp.getUnique());
 							if (connection == null) {
 								// If there is no connection, make a new connection and add TCP to it
@@ -123,6 +125,8 @@ public abstract class Server implements Runnable {
 									tcp.close();
 								}
 							}
+						} catch (ConnectionException e) {
+							Log.debug(LogLevel.ERROR, "Failed to accept client: " + e.getMessage());
 						}
 					}
 				}
