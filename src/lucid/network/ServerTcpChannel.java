@@ -3,14 +3,19 @@ package lucid.network;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
+import java.nio.channels.AsynchronousCloseException;
+import java.nio.channels.ClosedByInterruptException;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
 import lucid.Config;
+import lucid.exceptions.ConnectionException;
 import lucid.exceptions.PacketException;
 import lucid.exceptions.TcpReadException;
+import lucid.exceptions.TcpWriteException;
 import lucid.util.Log;
 import lucid.util.LogLevel;
 
@@ -36,39 +41,51 @@ public class ServerTcpChannel {
 		channel.register(selector, SelectionKey.OP_ACCEPT);
 	}
 	
-	public TcpConnection accept() throws IOException {
-		SocketChannel client = channel.accept();
-		client.setOption(StandardSocketOptions.TCP_NODELAY, true);
+	public TcpConnection accept() throws ConnectionException {
+		TcpConnection connection = null;
 		
-		TcpConnection connection = new TcpConnection(client);
 		try {
+			SocketChannel client = channel.accept();
+			client.setOption(StandardSocketOptions.TCP_NODELAY, true);
+			
+			connection = new TcpConnection(client);
+			
+			// Read handshake from client
 			connection.read();
+			
+			Packet handshake = connection.getPacket();
+			Log.debug(LogLevel.SPACKET, "Handshake: " + handshake);
+			
+			long unique = handshake.getLong();
+			connection.setUnique(unique);
+			
+			// Send it back to show that we accept it
+			connection.send(handshake);
+			connection.write();
+			
+			// Set options on the new connection
+			connection.getChannel().setBlocking(false);
+			SelectionKey key = client.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+			key.attach(connection);
+			Log.debug(LogLevel.ERROR, "New: " + connection.getUnique());
+			
+			return connection;
+		} catch (ClosedChannelException e) {
+			throw new ConnectionException("Tried to accept on closed server TCP channel.");
+		} catch (SecurityException e) {
+			throw new ConnectionException("Security manager does not permit access to the remote endpoint of new connection.");
+		} catch (IOException e) {
+			throw new ConnectionException("IO Error occurred on accepting TCP connection.");
 		} catch (TcpReadException e) {
-			Log.debug(LogLevel.ERROR, e.getMessage());
 			connection.close();
-			return null;
-		}
-		
-		Packet handshake = connection.getPacket();
-		Log.debug(LogLevel.SPACKET, "Handshake: " + handshake);
-		
-		long unique = 0;
-		try {
-			unique = handshake.getLong();
+			throw new ConnectionException(e.getMessage());
+		} catch (TcpWriteException e) {
+			connection.close();
+			throw new ConnectionException(e.getMessage());
 		} catch (PacketException e) {
-			Log.debug(LogLevel.ERROR, e.getMessage());
 			connection.close();
-			return null;
+			throw new ConnectionException(e.getMessage());
 		}
-		
-		connection.setUnique(unique);
-		connection.send(handshake);
-		
-		connection.getChannel().configureBlocking(false);
-		SelectionKey key = client.register(selector, SelectionKey.OP_READ);
-		key.attach(connection);
-		Log.debug(LogLevel.ERROR, "New: " + connection.getUnique());
-		return connection;
 	}
 	
 	public void close() {
