@@ -91,6 +91,52 @@ public abstract class Server implements Runnable {
 		return running;
 	}
 	
+	private boolean acceptTcpConnection(TcpConnection tcp) {
+		if (connections.containsKey(tcp.getUnique())) {
+			// There is already a connection
+			Connection connection = connections.get(tcp.getUnique());
+
+			// If connection has no TCP, add it, otherwise reject the connection
+			if (connection.tcp == null) {
+				connection.tcp = tcp;
+			}
+			else {
+				return false;
+			}
+		}
+		else {
+			// If there is no connection, make a new connection and add TCP to it
+			Connection connection = new Connection();
+			connection.tcp = tcp;
+			connections.put(tcp.getUnique(), connection);
+			notifyConnection(connection);
+		}
+		return true;
+	}
+	
+	private boolean acceptUdpConnection(UdpConnection udp) {
+		if (connections.containsKey(udp.getUnique())) {
+			// There is already a connection
+			Connection connection = connections.get(udp.getUnique());
+			
+			// If connection has no UDP, add it, otherwise reject the connection
+			if (connection.udp == null) {
+				connection.udp = udp;
+			}
+			else {
+				return false;
+			}
+		}
+		else {
+			// If there is no connection, make a new connection and add TCP to it
+			Connection connection = new Connection();
+			connection.udp = udp;
+			connections.put(udp.getUnique(), connection);
+			notifyConnection(connection);
+		}
+		return true;
+	}
+	
     /** Listens to incoming connection requests from clients and passes them in a Connection class */
     private void listen() {
     	try {
@@ -105,25 +151,13 @@ public abstract class Server implements Runnable {
 						try {
 							TcpConnection tcp = tcpChannel.accept();
 							
-							Connection connection = connections.get(tcp.getUnique());
-							if (connection == null) {
-								// If there is no connection, make a new connection and add TCP to it
-								connection = new Connection();
-								connection.tcp = tcp;
-								connections.put(tcp.getUnique(), connection);
-								notifyConnection(connection);
-							} else {
-								// There is already a connection
-								if (connection.tcp == null) {
-									// If the connection has no TCP, add TCP to it
-									connection.tcp = tcp;
-								}
-								else {
-									// If the connection already has TCP, deny the new connection
-									Log.debug(LogLevel.SERVER, "Connection denied, client already connected via TCP");
-									key.cancel();
-									tcp.close();
-								}
+							boolean accepted = acceptTcpConnection(tcp);
+							
+							if (!accepted) {
+								// If the connection already has TCP, deny the new connection
+								Log.debug(LogLevel.SERVER, "Connection denied, client already connected via TCP");
+								key.cancel();
+								tcp.close();
 							}
 						} catch (ConnectionException e) {
 							Log.debug(LogLevel.ERROR, "Failed to accept client: " + e.getMessage());
@@ -161,15 +195,13 @@ public abstract class Server implements Runnable {
 							if (packet.getType() == 0) {
 								UdpConnection udp = udpChannel.accept(packet);
 								
-								Connection connection = connections.get(udp.getUnique());
-								if (connection == null) {
-									connection = new Connection();
-									connection.udp = udp;
-									
-									connections.put(udp.getUnique(), connection);
-									notifyConnection(connection);
-								} else {
-									connection.udp = udp;
+								boolean accepted = acceptUdpConnection(udp);
+								
+								if (!accepted) {
+									// If the connection already has TCP, deny the new connection
+									Log.debug(LogLevel.SERVER, "Connection denied, client already connected via UDP");
+									key.cancel();
+									udp.close();
 								}
 							} else {
 								Connection connection = null;
