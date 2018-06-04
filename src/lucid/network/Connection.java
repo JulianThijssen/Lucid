@@ -10,13 +10,13 @@ public class Connection {
 	
 	public void sendTcp(Packet packet) {
 		if (tcp != null) {
-			tcp.send(packet);
+			tcp.sendPacket(packet);
 		}
 	}
 	
 	public void sendUdp(Packet packet) {
 		if (udp != null) {
-			udp.send(packet);
+			udp.sendPacket(packet);
 		}
 	}
 	

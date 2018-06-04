@@ -3,12 +3,12 @@ package lucid.network;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
 
-import lucid.exceptions.TcpReadException;
-import lucid.exceptions.TcpWriteException;
+import lucid.exceptions.ChannelReadException;
+import lucid.exceptions.ChannelWriteException;
 import lucid.util.Log;
 import lucid.util.LogLevel;
 
-public class TcpConnection {
+public class TcpConnection extends AbstractConnection {
 	/** Debug messages */
 	public static final String STREAM_SUCCESS = "Successfully opened streams on client connection.";
 	public static final String STREAM_FAILURE = "Failed to open stream on client. Closing connection..";
@@ -16,15 +16,9 @@ public class TcpConnection {
 	public static final String CLOSE_SUCCESS = "Successfully closed client connection, removing client..";
 	public static final String CLOSE_FAILURE = "Failed to close the client connection elegantly, discarding client..";
 	
-	/** A unique number identifying this connection from others on the same IP */
-	private long unique = -1;
-	
 	/** The connection of the client to the server */
 	private TcpChannel channel;
 	
-	/** Whether the client is listening or not */
-	public boolean connected = false;
-
 	public TcpConnection(SocketChannel channel) {
 		this.channel = new TcpChannel(channel);
 		
@@ -35,27 +29,28 @@ public class TcpConnection {
 		return channel;
 	}
 	
-	public long getUnique() {
-		return unique;
+	public boolean hasPackets() {
+		return channel.hasPackets();
 	}
 	
-	public void setUnique(long unique) {
-		this.unique = unique;
-	}
-	
-	public Packet getPacket() {
+	public Packet readPacket() {
 		return channel.receive();
 	}
 	
+	public void sendPacket(Packet packet) {
+		channel.send(packet);
+		Log.debug(LogLevel.SPACKET, "Sent to: " + getUnique() + " , " + packet);
+	}
+
 	/**
 	 * Read from the TCP channel of this connection.
-	 * @throws TcpReadException If reading from the channel failed
+	 * @throws ChannelReadException If reading from the channel failed
 	 */
-	public void read() throws TcpReadException {
+	public void read() throws ChannelReadException {
 		channel.read();
 	}
 	
-	public void write() throws TcpWriteException {
+	public void write() throws ChannelWriteException {
 		if (connected) {
 			if (channel.hasUnsentData()) {
 				channel.write();
@@ -63,11 +58,6 @@ public class TcpConnection {
 		}
 	}
 	
-	public void send(Packet packet) {
-		channel.send(packet);
-		Log.debug(LogLevel.SPACKET, "Sent to: " + unique + " , " + packet);
-	}
-
 	public void close() {
 		try {
 			connected = false;

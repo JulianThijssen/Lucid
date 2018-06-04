@@ -1,15 +1,16 @@
 package lucid.network;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
+import java.net.SocketAddress;
 import java.nio.channels.DatagramChannel;
 
-import lucid.Config;
+import lucid.exceptions.ChannelReadException;
+import lucid.exceptions.ChannelWriteException;
+import lucid.exceptions.ConnectionException;
 import lucid.util.Log;
 import lucid.util.LogLevel;
 
-public class UdpConnection {
+public class UdpConnection extends AbstractConnection {
 	/** Debug messages */
 	public static final String STREAM_SUCCESS = "Successfully opened streams on client connection.";
 	public static final String STREAM_FAILURE = "Failed to open stream on client. Closing connection..";
@@ -17,64 +18,62 @@ public class UdpConnection {
 	public static final String CLOSE_SUCCESS = "Successfully closed client connection, removing client..";
 	public static final String CLOSE_FAILURE = "Failed to close the client connection elegantly, discarding client..";
 	
-	/** A unique number identifying this connection from others on the same IP */
-	private long unique = -1;
-	
 	/** The datagram channel on which packets are received */
-	private DatagramChannel channel;
+	private UdpChannel channel;
 	
 	/** The address with which the client is connected */
-	private InetSocketAddress address = null;
+	private SocketAddress address = null;
 	
-	/** The channel output buffer */
-	private ByteBuffer out = ByteBuffer.allocate(Config.WRITE_BUFFER);
-	
-	/** Whether the client is listening or not */
-	private boolean connected = false;
-	
-	public UdpConnection(DatagramChannel channel, InetSocketAddress address) {
-		this.channel = channel;
+	public UdpConnection(DatagramChannel channel, SocketAddress address) {
+		this.channel = new UdpChannel(channel);
 		this.address = address;
 	}
 	
-	public long getUnique() {
-		return unique;
-	}
-	
-	public void setUnique(long unique) {
-		this.unique = unique;
-	}
-	
-	public DatagramChannel getChannel() {
+	public UdpChannel getChannel() {
 		return channel;
 	}
 	
-	public InetSocketAddress getAddress() {
+	public SocketAddress getAddress() {
 		return address;
 	}
 	
-	public void connect() {
-		try {
-			channel.connect(address);
-		} catch (IOException e) {
-			Log.debug(LogLevel.ERROR, "Failed to set up UDP connection to client");
-			close();
-		}
-		Log.debug(LogLevel.SERVER, "Succesfully set up UDP connection to client: " + address);
+	public boolean hasPackets() {
+		return channel.hasPackets();
 	}
 	
-	public void send(Packet packet) {
-		out.put(packet.getData());
-
-		out.flip();
+//	public Packet readPacket() {
+//		return channel.receive();
+//	}
+	
+	public void connect() throws ConnectionException {
 		try {
-			channel.write(out);
-
-			out.clear();
-		} catch(IOException e) {
+			channel.connect(address);
+			
+			connected = true;
+		} catch (IOException e) {
 			close();
+			throw new ConnectionException("Failed to connect UDP connection to client address");
 		}
-		//Log.debug("Sent UDP packet to client: " + address);
+	}
+	
+	public void sendPacket(Packet packet) {
+		channel.send(packet);
+	}
+	
+	/**
+	 * Read from the UDP channel of this connection.
+	 * @throws ChannelReadException If reading from the channel failed
+	 */
+//	public void read() throws ChannelReadException {
+//		channel.read();
+//	}
+	
+	public void write() throws ChannelWriteException {
+		if (connected) {
+			if (channel.hasUnsentData()) {
+				channel.write();
+			}
+		}
 	}
 	
 	public void close() {

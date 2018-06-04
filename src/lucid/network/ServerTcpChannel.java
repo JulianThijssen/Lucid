@@ -3,8 +3,6 @@ package lucid.network;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
-import java.nio.channels.AsynchronousCloseException;
-import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -14,8 +12,9 @@ import java.nio.channels.SocketChannel;
 import lucid.Config;
 import lucid.exceptions.ConnectionException;
 import lucid.exceptions.PacketException;
-import lucid.exceptions.TcpReadException;
-import lucid.exceptions.TcpWriteException;
+import lucid.exceptions.ServerStartException;
+import lucid.exceptions.ChannelReadException;
+import lucid.exceptions.ChannelWriteException;
 import lucid.util.Log;
 import lucid.util.LogLevel;
 
@@ -31,12 +30,35 @@ public class ServerTcpChannel {
 		this.port = port;
 		this.selector = selector;
 	}
+
+//	@Override
+//	public void setBlocking(boolean blocking) {
+//		try {
+//			channel.configureBlocking(blocking);
+//		} catch (IOException e) {
+//			Log.debug(LogLevel.ERROR, "Failed to set blocking mode on Server TCP Channel");
+//		}
+//	}
 	
-	public void start() throws Exception {
+//	@Override
+//	protected SocketAddress getRemoteAddress() throws IOException {
+//		// TODO Auto-generated method stub
+//		return null;
+//	}
+	
+	public void start() throws ServerStartException, Exception {
+		InetSocketAddress address;
+		try {
+			address = new InetSocketAddress(port);
+		}
+		catch (IllegalArgumentException e) {
+			throw new ServerStartException(ServerError.PORT_OUT_OF_RANGE);
+		}
+		
 		channel = ServerSocketChannel.open();
 		channel.socket().setReuseAddress(true);
 		channel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
-		channel.socket().bind(new InetSocketAddress(port), Config.MAX_PENDING);
+		channel.socket().bind(address, Config.MAX_PENDING_TCP_CONNECTIONS);
 		channel.configureBlocking(false);
 		channel.register(selector, SelectionKey.OP_ACCEPT);
 	}
@@ -53,14 +75,14 @@ public class ServerTcpChannel {
 			// Read handshake from client
 			connection.read();
 			
-			Packet handshake = connection.getPacket();
+			Packet handshake = connection.readPacket();
 			Log.debug(LogLevel.SPACKET, "Handshake: " + handshake);
 			
 			long unique = handshake.getLong();
 			connection.setUnique(unique);
 			
 			// Send it back to show that we accept it
-			connection.send(handshake);
+			connection.sendPacket(handshake);
 			connection.write();
 			
 			// Set options on the new connection
@@ -76,10 +98,10 @@ public class ServerTcpChannel {
 			throw new ConnectionException("Security manager does not permit access to the remote endpoint of new connection.");
 		} catch (IOException e) {
 			throw new ConnectionException("IO Error occurred on accepting TCP connection.");
-		} catch (TcpReadException e) {
+		} catch (ChannelReadException e) {
 			connection.close();
 			throw new ConnectionException(e.getMessage());
-		} catch (TcpWriteException e) {
+		} catch (ChannelWriteException e) {
 			connection.close();
 			throw new ConnectionException(e.getMessage());
 		} catch (PacketException e) {
