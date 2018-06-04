@@ -1,6 +1,6 @@
 package lucid.network;
 
-import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
@@ -50,7 +50,7 @@ public class Packet {
 	private short type = -1;
 	
 	/** The address the packet originated from */
-	private InetSocketAddress address = null;
+	private SocketAddress address = null;
 	
 	/** Position of the mark in the array */
 	private int pos = 0;
@@ -67,11 +67,11 @@ public class Packet {
 		return type;
 	}
 	
-	public InetSocketAddress getSource() {
+	public SocketAddress getSource() {
 		return address;
 	}
 	
-	public void setSource(InetSocketAddress address) {
+	public void setSource(SocketAddress address) {
 		this.address = address;
 	}
 	
