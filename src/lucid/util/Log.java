@@ -5,7 +5,7 @@ public class Log {
 	
 	public static void debug(LogLevel level, String message) {
 		if (level == listenLevel || listenLevel == LogLevel.ALL) {
-			System.out.println(message);
+			System.out.println(String.format("[%s] %s", level, message));
 		}
 	}
 }
