@@ -7,21 +7,17 @@ import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
 import java.util.List;
 
+import lucid.exceptions.ChannelReadException;
+import lucid.exceptions.ChannelWriteException;
 import lucid.network.Packet;
-import lucid.network.PacketBuffer;
+import lucid.network.UdpChannel;
 import lucid.util.Log;
 import lucid.util.LogLevel;
 import lucid.util.UniqueGenerator;
 
 public class UdpConnection implements Runnable {
-    /** The connection of the client to the server */
-	private DatagramChannel channel;
-	
-	/** The channel input buffer */
-	private PacketBuffer in = new PacketBuffer("UDP Client", 1024); // FIXME size
-	
-	/** The channel output buffer */
-	private ByteBuffer out = ByteBuffer.allocate(1024); // FIXME size
+	/** The connection of the client to the server */
+	private UdpChannel channel;
 	
 	private InetSocketAddress address = null;
     
@@ -35,11 +31,13 @@ public class UdpConnection implements Runnable {
 		address = new InetSocketAddress(host, port);
 
 		try {
-			channel = DatagramChannel.open();
+			DatagramChannel datagramChannel = DatagramChannel.open();
+			datagramChannel.connect(address);
+			datagramChannel.configureBlocking(false);
+
+			channel = new UdpChannel(datagramChannel);
 			connected = handshake(address);
-			
-			//channel.configureBlocking(false);
-			
+
 			if (!connected) {
 				close();
 				return false;
@@ -102,13 +100,6 @@ public class UdpConnection implements Runnable {
 			close();
 		}
 	}
-	
-	public Packet getPacket() {
-		return in.get();
-	}
-	
-	public int read() throws IOException {
-		return in.readUdp(channel);
 	}
 	
 	public void send(Packet packet) {
@@ -122,6 +113,15 @@ public class UdpConnection implements Runnable {
 			close();
 		}
 		Log.debug(LogLevel.CPACKET, "Done sending packet");
+	}
+	
+	private void read() {
+		try {
+			channel.read();
+		} catch (ChannelReadException e) {
+			Log.debug(LogLevel.ERROR, e.getMessage());
+			close();
+		}
 	}
 	
 	public void addListener(NetworkListener listener) {
