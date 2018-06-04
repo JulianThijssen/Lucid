@@ -365,9 +365,19 @@ public class Packet {
 		}
 	}
 	
+	/**
+	 * Returns packet as a writable byte buffer. The buffer contains both
+	 * the packet header and packet data store.
+	 * @param packet The packet to return as byte buffer
+	 * @return A byte buffer ready for writing to a channel
+	 */
 	public static ByteBuffer toByteBuffer(Packet packet) {
-		ByteBuffer buffer = ByteBuffer.allocate(packet.getLength() + 4);
+		assert(packet.getLength() > 0);
+		
 		byte[] data = packet.getData();
+		ByteBuffer buffer = ByteBuffer.allocate(data.length);
+
+		assert(data.length == buffer.remaining());
 		buffer.put(data);
 		buffer.flip();
 		
