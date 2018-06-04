@@ -16,23 +16,23 @@ public class UdpTestServer extends Server implements ServerListener {
 
 	@Override
 	public void onServerStart() {
-		System.out.println("Start");
+		System.out.println("UDP Test Server started.");
 	}
 
 	@Override
 	public void onServerStop() {
-		System.out.println("Stop");
+		System.out.println("UDP Test Server stopped.");
 	}
 
 	@Override
 	public void onConnection(Connection connection) {
 		this.connection = connection;
-		System.out.println("Connection");
+		System.out.println("New client connected to UDP Test Server.");
 	}
 
 	@Override
 	public void onDisconnect(Connection connection) {
-		System.out.println("Disconnection");
+		System.out.println("Client disconnected from UDP Test Server.");
 	}
 
 	@Override
