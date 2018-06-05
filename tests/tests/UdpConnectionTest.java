@@ -3,7 +3,10 @@ package tests;
 import static org.junit.Assert.*;
 import lucid.client.NetworkListener;
 import lucid.client.UdpConnection;
+import lucid.exceptions.ServerStartException;
 import lucid.network.Packet;
+import lucid.util.Log;
+import lucid.util.LogLevel;
 import tests.helper.UdpTestServer;
 
 import org.junit.Test;
@@ -16,20 +19,32 @@ public class UdpConnectionTest implements NetworkListener {
 		System.out.println("Starting UdpConnectionTest...");
 		UdpTestServer server = new UdpTestServer(4445);
 		
-		server.start();
-
+		Log.listenLevel = LogLevel.ALL;
+		
+		try {
+			server.start();
+		} catch (ServerStartException e) {
+			System.out.println("Server failed to start");
+		}
+		
 		Packet packet = new Packet((short) 1);
 		packet.addString("UDP Test Packet");
 		
 		UdpConnection udp = new UdpConnection();
 		udp.addListener(this);
-		udp.connect("127.0.0.1", 4445);
+		boolean connected = udp.connect("127.0.0.1", 4445);
+		if (!connected) {
+			System.out.println("Failed to connect to server via UDP");
+			return;
+		}
+		
 		udp.send(packet);
 		
 		while (!received) {
 			System.out.println("Trying to receive...");
+			
 			try {
-				Thread.sleep(10);
+				Thread.sleep(100);
 			} catch(Exception e) {
 				
 			}

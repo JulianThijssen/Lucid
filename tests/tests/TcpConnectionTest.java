@@ -3,6 +3,7 @@ package tests;
 import static org.junit.Assert.*;
 import lucid.client.TcpConnection;
 import lucid.exceptions.ConnectionException;
+import lucid.exceptions.ServerStartException;
 import lucid.network.Packet;
 import lucid.util.Log;
 import lucid.util.LogLevel;
@@ -19,7 +20,11 @@ public class TcpConnectionTest {
 		System.out.println("Starting TcpConnectionTest...");
 		TcpTestServer server = new TcpTestServer(4444);
 
-		server.start();
+		try {
+			server.start();
+		} catch (ServerStartException e) {
+			System.out.println("Server failed to start");
+		}
 		
 		for (int i = 0; i < 150; i++) {
 			Packet packet = new Packet((short) 1);

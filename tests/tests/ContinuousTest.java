@@ -4,6 +4,7 @@ import lucid.client.NetworkListener;
 import lucid.client.TcpConnection;
 import lucid.client.UdpConnection;
 import lucid.exceptions.ConnectionException;
+import lucid.exceptions.ServerStartException;
 import lucid.network.Packet;
 import lucid.util.Log;
 import lucid.util.LogLevel;
@@ -20,7 +21,11 @@ public class ContinuousTest implements NetworkListener {
 		Log.listenLevel = LogLevel.ALL;
 		SpamUdpTestServer server = new SpamUdpTestServer(4444, 4445);
 		
-		server.start();
+		try {
+			server.start();
+		} catch (ServerStartException e) {
+			System.out.println("Server failed to start");
+		}
 		
 		System.out.println("Preconnect");
 		TcpConnection tcp = new TcpConnection();
