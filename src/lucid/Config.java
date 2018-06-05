@@ -16,10 +16,12 @@ public class Config {
 	public static String DB_PASS = "pass";
 	
 	public static int MAX_PLAYERS = 100;
-	public static int MAX_PENDING = 50;
+	public static int MAX_PENDING_TCP_CONNECTIONS = 50;
 	
 	public static int READ_BUFFER = 1024;
 	public static int WRITE_BUFFER = 1024;
+	
+	public static int MAX_WRITE_OVERFLOW = 2048;
 	
 	public static void loadConfig() {
 		BufferedReader in = null;
@@ -55,7 +57,7 @@ public class Config {
 				} else if (key.equals("MAX_PLAYERS")) {
 					MAX_PLAYERS = Integer.parseInt(value);
 				} else if (key.equals("MAX_PENDING")) {
-					MAX_PENDING = Integer.parseInt(value);
+					MAX_PENDING_TCP_CONNECTIONS = Integer.parseInt(value);
 				} else if (key.equals("READ_BUFFER")) {
 					READ_BUFFER = Integer.parseInt(value);
 				} else if (key.equals("WRITE_BUFFER")) {
