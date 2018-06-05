@@ -13,39 +13,39 @@ import org.junit.Test;
 
 public class TcpConnectionTest {
 
-	@Test
-	public void testTcpConnection() throws ConnectionException {
-		Log.listenLevel = LogLevel.NONE;
-		
-		System.out.println("Starting TcpConnectionTest...");
-		TcpTestServer server = new TcpTestServer(4444);
+    @Test
+    public void testTcpConnection() throws ConnectionException {
+        Log.listenLevel = LogLevel.NONE;
 
-		try {
-			server.start();
-		} catch (ServerStartException e) {
-			System.out.println("Server failed to start");
-		}
-		
-		for (int i = 0; i < 150; i++) {
-			Packet packet = new Packet((short) 1);
-			packet.addString("Packet " + i);
-			
-			TcpConnection connection = new TcpConnection();
-			TcpConnection.sid++;
-			connection.connect("127.0.0.1", 4444);
-			connection.send(packet);
-			//System.out.println(reply);
-			assertTrue(connection.isConnected());
+        System.out.println("Starting TcpConnectionTest...");
+        TcpTestServer server = new TcpTestServer(4444);
 
-			connection.close();
+        try {
+            server.start();
+        } catch (ServerStartException e) {
+            System.out.println("Server failed to start");
+        }
 
-			try {
-				Thread.sleep(10); // Retrying too fast doesn't work due to a single connection being allowed
-			} catch(Exception e) {
-				
-			}
-		}
-		
-		server.close();
-	}
+        for (int i = 0; i < 150; i++) {
+            Packet packet = new Packet((short) 1);
+            packet.addString("Packet " + i);
+
+            TcpConnection connection = new TcpConnection();
+            TcpConnection.sid++;
+            connection.connect("127.0.0.1", 4444);
+            connection.send(packet);
+            //System.out.println(reply);
+            assertTrue(connection.isConnected());
+
+            connection.close();
+
+            try {
+                Thread.sleep(10); // Retrying too fast doesn't work due to a single connection being allowed
+            } catch(Exception e) {
+
+            }
+        }
+
+        server.close();
+    }
 }

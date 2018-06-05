@@ -5,5 +5,5 @@ import java.nio.ByteBuffer;
 
 @FunctionalInterface
 public interface ChannelWriter {
-	public int write(ByteBuffer b) throws IOException;
+    public int write(ByteBuffer b) throws IOException;
 }

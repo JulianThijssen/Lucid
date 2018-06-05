@@ -5,5 +5,5 @@ import java.nio.ByteBuffer;
 
 @FunctionalInterface
 public interface ChannelReader {
-	public int read(ByteBuffer b) throws IOException;
+    public int read(ByteBuffer b) throws IOException;
 }
