@@ -14,8 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import lucid.exceptions.ConnectionException;
-import lucid.exceptions.TcpReadException;
-import lucid.exceptions.TcpWriteException;
+import lucid.exceptions.ChannelReadException;
+import lucid.exceptions.ChannelWriteException;
 import lucid.network.Packet;
 import lucid.network.TcpChannel;
 import lucid.util.Log;
@@ -93,8 +93,9 @@ public class TcpConnection implements Runnable {
 	}
 	
 	private void listen() {
-		if(!channel.isConnected()) {
+		if (!channel.isConnected()) {
 			close();
+			return;
 		}
 
 		read();
@@ -109,7 +110,7 @@ public class TcpConnection implements Runnable {
 		channel.send(packet);
 		try {
 			channel.write();
-		} catch (TcpWriteException e) {
+		} catch (ChannelWriteException e) {
 			Log.debug(LogLevel.ERROR, e.getMessage());
 			close();
 		}
@@ -118,7 +119,7 @@ public class TcpConnection implements Runnable {
 	private void read() {
 		try {
 			channel.read();
-		} catch (TcpReadException e) {
+		} catch (ChannelReadException e) {
 			Log.debug(LogLevel.ERROR, e.getMessage());
 			close();
 		}

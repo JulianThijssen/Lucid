@@ -2,7 +2,6 @@ package lucid.client;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,16 +57,32 @@ public class UdpConnection implements Runnable {
 	
 	private boolean handshake(InetSocketAddress address) {
 		try {
-			Packet hPacket = new Packet((short) 0);
-			hPacket.addLong(UniqueGenerator.unique);
+			Packet handshake = new Packet((short) 0);
+			handshake.addLong(UniqueGenerator.unique);
 			
-			ByteBuffer hOut = Packet.toByteBuffer(hPacket);
+			channel.send(handshake);
+			try {
+				channel.write();
+			}
+			catch (ChannelWriteException e) {
+				Log.debug(LogLevel.ERROR, e.getMessage());
+				close();
+			}
 
-			channel.socket().setSoTimeout(1000);
-			int bytes = channel.send(hOut, address);
+			// Timeout system FIXME
+			long time = 0;
+			long timeout = 3000;
+			while (!channel.hasPackets()) {
+				channel.read();
+				
+				Thread.sleep(10);
+				time += 10;
+				if (time > timeout) {
+					return false;
+				}
+			}
 
-			read();
-			getPacket();
+			channel.receive();
 			Log.debug(LogLevel.CPACKET, "UDP handshake successful");
 			return true;
 		} catch (Exception e) {
@@ -88,30 +103,28 @@ public class UdpConnection implements Runnable {
 	}
 	
 	private void listen() {
-		try {
-			int bytesRead = read();
-			
-			Packet packet = null;
-			
-			while ((packet = getPacket()) != null) {
-				notifyReceived(packet);
-			}
-		} catch (IOException e) {
+		if (!channel.isConnected()) {
 			close();
+			return;
 		}
-	}
+
+		read();
+		
+		while (channel.hasPackets()) {
+			Packet packet = channel.receive();
+			notifyReceived(packet);
+		}
 	}
 	
 	public void send(Packet packet) {
-		out.put(packet.getData());
-		out.flip();
+		channel.send(packet);
 		try {
-			channel.send(out, address);
-			out.clear();
-		} catch(IOException e) {
-			e.printStackTrace();
+			channel.write();
+		} catch (ChannelWriteException e) {
+			Log.debug(LogLevel.ERROR, e.getMessage());
 			close();
 		}
+		
 		Log.debug(LogLevel.CPACKET, "Done sending packet");
 	}
 	
