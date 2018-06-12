@@ -341,7 +341,8 @@ public class Packet {
         short len = -1;
 
         try {
-            type = buffer.getShort();
+            type = buffer.getShort(); // FIXME Does this break when trying to get packets from an empty buffer
+            // Like at the end of trying to read packets in a while loop from a buffer containing multiple
             len = buffer.getShort();
 
             // Check if packet is complete
