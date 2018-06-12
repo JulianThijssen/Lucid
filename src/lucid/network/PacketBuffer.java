@@ -7,6 +7,8 @@ import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.NotYetConnectedException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.IntSupplier;
@@ -19,11 +21,11 @@ import lucid.util.Statistics;
 
 public class PacketBuffer {
     /** The channel output buffer */
-    protected ByteBuffer writeBuffer = ByteBuffer.allocate(8192); // TODO make configurable, and do not violate channel limits
-    protected ByteBuffer readBuffer = ByteBuffer.allocate(8192); // TODO make configurable, and do not violate channel limits
+    private ByteBuffer writeBuffer = ByteBuffer.allocate(8192); // TODO make configurable, and do not violate channel limits
+    private ByteBuffer readBuffer = ByteBuffer.allocate(8192); // TODO make configurable, and do not violate channel limits
 
-    protected BlockingQueue<Packet> incomingPackets = new LinkedBlockingQueue<Packet>(); // TODO add max size + size warning + timeout on full
-    protected BlockingQueue<Packet> outgoingPackets = new LinkedBlockingQueue<Packet>(); // TODO add max size + size warning + timeout on full
+    private BlockingQueue<Packet> incomingPackets = new LinkedBlockingQueue<Packet>(); // TODO add max size + size warning + timeout on full
+    private BlockingQueue<Packet> outgoingPackets = new LinkedBlockingQueue<Packet>(); // TODO add max size + size warning + timeout on full
 
     private final Object writeLock = new Object();
     
