@@ -25,6 +25,8 @@ public class PacketBuffer {
     protected BlockingQueue<Packet> incomingPackets = new LinkedBlockingQueue<Packet>(); // TODO add max size + size warning + timeout on full
     protected BlockingQueue<Packet> outgoingPackets = new LinkedBlockingQueue<Packet>(); // TODO add max size + size warning + timeout on full
 
+    private final Object writeLock = new Object();
+    
     public PacketBuffer() {
         Statistics.inPacketBufferSize = new IntSupplier() {
             @Override
@@ -45,7 +47,9 @@ public class PacketBuffer {
     }
 
     public void send(Packet packet) {
-        outgoingPackets.offer(packet);
+        synchronized (writeLock) {
+            outgoingPackets.offer(packet);
+        }
     }
 
     public boolean hasPackets() {
@@ -58,14 +62,16 @@ public class PacketBuffer {
 
     public void write(ChannelWriter writer) throws ChannelWriteException {
         // Fill up the write buffer with queued up packets
-        while (!outgoingPackets.isEmpty()) {
-            Packet packet = outgoingPackets.peek();
-            if (writeBuffer.remaining() < packet.getLength() + Packet.HEADER_SIZE) {
-                break;
+        synchronized (writeLock) {
+            while (!outgoingPackets.isEmpty()) {
+                Packet packet = outgoingPackets.peek();
+                if (writeBuffer.remaining() < packet.getLength() + Packet.HEADER_SIZE) {
+                    break;
+                }
+                outgoingPackets.remove();
+    
+                writeBuffer.put(packet.getData());
             }
-            outgoingPackets.remove();
-
-            writeBuffer.put(packet.getData());
         }
 
         // Send the write buffer through the channel
