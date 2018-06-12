@@ -56,7 +56,9 @@ public class UdpChannel implements NetworkChannel {
 
     @Override
     public void write() throws ChannelWriteException {
-        packetBuffer.write(b -> { return channel.write(b); });
+        if (packetBuffer.hasUnsentData()) {
+            packetBuffer.write(b -> { return channel.write(b); });
+        }
     }
 
     @Override

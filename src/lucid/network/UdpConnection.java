@@ -70,9 +70,7 @@ public class UdpConnection extends AbstractConnection {
 
     public void write() throws ChannelWriteException {
         if (connected) {
-            if (channel.hasUnsentData()) {
-                channel.write();
-            }
+            channel.write();
         }
     }
 
