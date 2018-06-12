@@ -31,21 +31,6 @@ public class ServerTcpChannel {
         this.selector = selector;
     }
 
-//  @Override
-//  public void setBlocking(boolean blocking) {
-//      try {
-//          channel.configureBlocking(blocking);
-//      } catch (IOException e) {
-//          Log.debug(LogLevel.ERROR, "Failed to set blocking mode on Server TCP Channel");
-//      }
-//  }
-
-//  @Override
-//  protected SocketAddress getRemoteAddress() throws IOException {
-//      // TODO Auto-generated method stub
-//      return null;
-//  }
-
     public void start() throws ServerStartException, Exception {
         InetSocketAddress address;
         try {

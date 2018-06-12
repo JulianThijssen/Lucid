@@ -1,5 +1,7 @@
 package tests;
 
+import static org.junit.Assert.fail;
+
 import org.junit.Test;
 
 import lucid.exceptions.ConnectionException;
@@ -27,8 +29,8 @@ public class ServerCPUTest {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
+                fail();
             }
         }
 
