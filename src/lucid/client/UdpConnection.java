@@ -3,29 +3,87 @@ package lucid.client;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import lucid.exceptions.ChannelReadException;
 import lucid.exceptions.ChannelWriteException;
+import lucid.network.ConnectionStatus;
 import lucid.network.Packet;
 import lucid.network.UdpChannel;
 import lucid.util.Log;
 import lucid.util.LogLevel;
+import lucid.util.Scheduler;
 import lucid.util.UniqueGenerator;
 
 public class UdpConnection implements Runnable {
+    private class Handshake {
+        private final Packet SYN;
+        private final Packet ACK;
+        
+        private Scheduler retryScheduler = null;
+        
+        public Handshake(long unique) {
+            SYN = new Packet((short) 0);
+            SYN.addLong(unique);
+            ACK = new Packet((short) 1);
+            
+            Runnable retryTask = new Runnable() {
+                @Override
+                public void run() {
+                    sendSyn();
+                }
+            };
+            retryScheduler = new Scheduler(retryTask);
+        }
+        
+        public void init() {
+            retryScheduler.executeAtFixedRate(500);
+        }
+        
+        public void complete() {
+            retryScheduler.stop();
+            // Acknowledge SYN-ACK
+            sendAck();
+        }
+        
+        private void sendSyn() {
+            send(SYN);
+        }
+        
+        public void sendAck() {
+            send(ACK);
+        }
+    }
+    
     /** The connection of the client to the server */
     private UdpChannel channel;
 
     private InetSocketAddress address = null;
 
-    /** Whether the client is listening or not */
-    private boolean connected = false;
+    /** Unique ID of the client */
+    private long unique;
+    
+    /** The Selector which will listen for reading or writing capabilities */
+    private Selector selector;
 
+    /** Status of the client connection */
+    private ConnectionStatus status = ConnectionStatus.DISCONNECTED;
+    
     /** List of all the listeners that get notified of connection events */
     private List<NetworkListener> listeners = new ArrayList<NetworkListener>();
-
+    
+    private Handshake handshake;
+    
+    public UdpConnection() {
+        unique = UniqueGenerator.unique;
+        
+        handshake = new Handshake(unique);
+    }
+    
     public boolean connect(String host, int port) {
         address = new InetSocketAddress(host, port);
 
@@ -35,12 +93,17 @@ public class UdpConnection implements Runnable {
             datagramChannel.configureBlocking(false);
 
             channel = new UdpChannel(datagramChannel);
-            connected = handshake(address);
+            
+            selector = Selector.open();
+            SelectionKey key = datagramChannel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+            key.attach(this);
 
-            if (!connected) {
-                close();
-                return false;
-            }
+            status = ConnectionStatus.CONNECTING;
+            new Thread(this).start();
+            
+            // Initiate the handshake
+            handshake.init();
+
         } catch(IOException e) {
             e.printStackTrace();
             close();
@@ -48,90 +111,88 @@ public class UdpConnection implements Runnable {
             return false;
         }
 
-        new Thread(this).start();
-        notifyConnected();
-        Log.debug(LogLevel.CLIENT, String.format("Successfully connected to host: %s at port: %d", host, port));
-
         return true;
     }
 
-    private boolean handshake(InetSocketAddress address) {
-        try {
-            Packet handshake = new Packet((short) 0);
-            handshake.addLong(UniqueGenerator.unique);
-
-            channel.send(handshake);
-            try {
-                channel.write();
-            }
-            catch (ChannelWriteException e) {
-                Log.debug(LogLevel.ERROR, e.getMessage());
-                close();
-            }
-
-            // Timeout system FIXME
-            long time = 0;
-            long timeout = 3000;
-            while (!channel.hasPackets()) {
-                channel.read();
-
-                Thread.sleep(10);
-                time += 10;
-                if (time > timeout) {
-                    return false;
-                }
-            }
-
-            channel.receive();
-            Log.debug(LogLevel.CPACKET, "UDP handshake successful");
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    public boolean isConnected() {
-        return connected;
+    public ConnectionStatus getConnectionStatus() {
+        return status;
     }
 
     @Override
     public void run() {
-        while(connected) {
-            listen();
+        try {
+            while (status != ConnectionStatus.DISCONNECTED) {
+                // Read or write packets
+                update();
+                
+                while (channel.hasPackets()) {
+                    Packet packet = channel.receive();
+                    
+                    if (packet.getType() == 0) {
+                        if (status == ConnectionStatus.CONNECTING) {
+                            Log.debug(LogLevel.CLIENT, "Received SYN-ACK packet");
+                            handshake.complete();
+                            notifyConnected();
+                            Log.debug(LogLevel.CLIENT, String.format("Successfully connected to host: " + address));
+                        }
+                        else if (status == ConnectionStatus.CONNECTED) {
+                            // Server didn't receive ACK packet, so re-send it
+                            handshake.complete();
+                        }
+                    }
+                    else {
+                        notifyReceived(packet);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            close();
         }
     }
 
-    private void listen() {
+    private void update() throws IOException {
         if (!channel.isConnected()) {
             close();
             return;
         }
+        
+        selector.select();
+        Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
+        
+        while (iterator.hasNext()) {
+            SelectionKey key = (SelectionKey) iterator.next();
 
-        read();
+            if (key.isReadable()) {
+                read();
+            }
 
-        while (channel.hasPackets()) {
-            Packet packet = channel.receive();
-            notifyReceived(packet);
+            else if (key.isWritable()) {
+                write();
+            }
+
+            iterator.remove();
         }
     }
 
     public void send(Packet packet) {
         channel.send(packet);
-        try {
-            channel.write();
-        } catch (ChannelWriteException e) {
-            Log.debug(LogLevel.ERROR, e.getMessage());
-            close();
-        }
-
-        Log.debug(LogLevel.CPACKET, "Done sending packet");
     }
 
     private void read() {
         try {
             channel.read();
-        } catch (ChannelReadException e) {
+        }
+        catch (ChannelReadException e) {
+            Log.debug(LogLevel.ERROR, e.getMessage());
+            close();
+        }
+    }
+    
+    private void write() {
+        try {
+            channel.write();
+        }
+        catch (ChannelWriteException e) {
             Log.debug(LogLevel.ERROR, e.getMessage());
             close();
         }
@@ -141,19 +202,21 @@ public class UdpConnection implements Runnable {
         listeners.add(listener);
     }
 
-    public void notifyConnected() {
+    private void notifyConnected() {
+        status = ConnectionStatus.CONNECTED;
         for(NetworkListener listener: listeners) {
             listener.connected();
         }
     }
 
-    public void notifyReceived(Packet packet) {
+    private void notifyReceived(Packet packet) {
         for(NetworkListener listener: listeners) {
             listener.received(packet);
         }
     }
 
-    public void notifyDisconnected() {
+    private void notifyDisconnected() {
+        status = ConnectionStatus.DISCONNECTED;
         for(NetworkListener listener: listeners) {
             listener.disconnected();
         }
@@ -161,9 +224,8 @@ public class UdpConnection implements Runnable {
 
     public void close() {
         try {
-            connected = false;
-            if (channel != null) { channel.close(); }
             notifyDisconnected();
+            if (channel != null) { channel.close(); }
         } catch(IOException e) {
             //TODO Log.debug("Connection to the server was closed");
         }

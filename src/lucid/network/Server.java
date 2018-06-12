@@ -1,6 +1,7 @@
 package lucid.network;
 
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.ArrayList;
@@ -11,9 +12,11 @@ import lucid.Config;
 import lucid.exceptions.ChannelReadException;
 import lucid.exceptions.ChannelWriteException;
 import lucid.exceptions.ConnectionException;
+import lucid.exceptions.PacketException;
 import lucid.exceptions.ServerStartException;
 import lucid.util.Log;
 import lucid.util.LogLevel;
+import lucid.util.Scheduler;
 
 public abstract class Server implements Runnable {
     /** The TCP channel bound to a port which receives TCP client connection requests. */
@@ -42,6 +45,20 @@ public abstract class Server implements Runnable {
 
     /** Whether the server is running or not */
     private boolean running = false;
+    
+    
+    private class Handshake {
+        public long unique;
+        public SocketAddress client;
+        
+        public Handshake(long unique, SocketAddress client) {
+            this.unique = unique;
+            this.client = client;
+        }
+    }
+    
+    private List<Handshake> openHandshakes = new ArrayList<Handshake>();
+    private Scheduler sendScheduler = null;
 
     public Server(int tcpPort, int udpPort) {
         this.tcpPort = tcpPort;
@@ -66,6 +83,24 @@ public abstract class Server implements Runnable {
                 udpChannel = new ServerUdpChannel(udpPort, selector);
                 udpChannel.start();
             }
+            
+            Runnable sendTask = new Runnable() {
+                @Override
+                public void run() {
+                    for (Handshake handshake: openHandshakes) {
+                        Packet packet = new Packet((short) 0);
+                        packet.addLong(handshake.unique);
+                        try {
+                            udpChannel.sendPacket(packet, handshake.client);
+                        } catch (ChannelWriteException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            };
+            
+            sendScheduler = new Scheduler(sendTask);
+            sendScheduler.executeAtFixedRate(500);
 
             running = true;
             new Thread(this).start();
@@ -86,9 +121,9 @@ public abstract class Server implements Runnable {
         return running;
     }
 
-    private boolean acceptUdpConnection(Packet packet) {
+    private boolean acceptUdpConnection(long unique, SocketAddress address) {
         try {
-            UdpConnection udp = udpChannel.accept(packet);
+            UdpConnection udp = udpChannel.accept(unique, address);
 
             return connectionMap.addUdpToConnection(udp);
         }
@@ -146,6 +181,29 @@ public abstract class Server implements Runnable {
             }
         }
     }
+    
+    private boolean containsHandshake(SocketAddress address) {
+        for (Handshake handshake: openHandshakes) {
+            if (handshake.client == address) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    private Handshake removeHandshake(SocketAddress address) {
+        Iterator<Handshake> it = openHandshakes.iterator();
+        
+        while (it.hasNext()) {
+            Handshake handshake = it.next();
+            
+            if (handshake.client == address) {
+                it.remove();
+                return handshake;
+            }
+        }
+        return null;
+    }
 
     private void read(SelectionKey key) throws IOException {
         Object attachment = key.attachment();
@@ -178,33 +236,61 @@ public abstract class Server implements Runnable {
         else if (attachment instanceof ServerUdpChannel) {
             assert udpChannel.isOpen();
 
-            Packet packet = null;
+            List<Packet> packets = null;
             // Attempt to read packets from UDP server channel
             try {
-                packet = udpChannel.readPacket();
-            // The connection to this client broke, disconnect them
+                packets = udpChannel.readPacket();
             } catch (ChannelReadException e) {
+                // The connection to this client broke, disconnect them
                 // TODO Try to recover
                 e.printStackTrace();
                 return;
             }
 
-            if (packet.getType() == 0) {
-                boolean accepted = acceptUdpConnection(packet);
+            for (Packet packet: packets) {
+                SocketAddress address = packet.getSource();
 
-                if (accepted) {
-                    notifyConnection(connectionMap.getFromAddress(packet.getSource()));
+                // FIXME Shouldn't be 0, should be a special SYN packet
+                if (packet.getType() == 0) {
+                    Log.debug(LogLevel.SERVER, "Received SYN packet");
+                    // Attempt to read unique ID from handshake and send acknowledgement
+                    try {
+                        long unique = packet.getLong();
+                        if (!containsHandshake(address)) {
+                            openHandshakes.add(new Handshake(unique, address));
+                        }
+                        
+                        Log.debug(LogLevel.SERVER, "Got a new handshake from client with id: " + unique);
+                        //sendPacket(handshake, handshake.getSource());
+                    }
+                    catch (PacketException e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                }
+                else if (packet.getType() == 1) { // FIXME shouldnt be 0, should be special ACK packet
+                    Log.debug(LogLevel.SERVER, "Received ACK packet");
+                    // Received acknowledgement from client, complete connection
+                    if (containsHandshake(address)) {
+                        Handshake handshake = removeHandshake(address);
+                        boolean accepted = acceptUdpConnection(handshake.unique, address);
+                        
+                        if (accepted) {
+                            notifyConnection(connectionMap.getFromAddress(packet.getSource()));
+                        }
+                        else {
+                            Log.debug(LogLevel.SERVER, "UDP Connection denied");
+                        }
+                    }
                 }
                 else {
-                    Log.debug(LogLevel.SERVER, "UDP Connection denied");
-                }
-            } else {
-                Connection connection = connectionMap.getFromAddress(packet.getSource());
+                    Connection connection = connectionMap.getFromAddress(packet.getSource());
 
-                if (connection != null) {
-                    notifyReceived(connection, packet);
-                } else {
-                    Log.debug(LogLevel.ERROR, "Received a packet from unknown connection");
+                    if (connection != null) {
+                        notifyReceived(connection, packet);
+                    } else {
+                        Log.debug(LogLevel.ERROR, "Received a packet from unknown connection");
+                    }
                 }
             }
         }

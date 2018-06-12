@@ -8,11 +8,11 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.List;
 
 import lucid.exceptions.ChannelReadException;
 import lucid.exceptions.ChannelWriteException;
 import lucid.exceptions.ConnectionException;
-import lucid.exceptions.PacketException;
 import lucid.exceptions.ServerStartException;
 import lucid.util.Log;
 import lucid.util.LogLevel;
@@ -20,9 +20,12 @@ import lucid.util.LogLevel;
 public class ServerUdpChannel {
     /** The channel this server will listen on for UDP connections */
     private DatagramChannel channel;
-
+    
     /** The port this server will listen on for UDP connections */
     private int port;
+    
+    /** The address to which datagram sockets will be bound */
+    private SocketAddress hostAddress;
 
     /** The selector which will select when this channel is ready accept */
     private Selector selector;
@@ -31,9 +34,13 @@ public class ServerUdpChannel {
     /** Byte buffer used for receiving datagram packets */
     private ByteBuffer in = ByteBuffer.allocate(65535);
 
+    private PacketBuffer packetBuffer = new PacketBuffer(); // TODO 65535 read size
+    
     /** Keeps track of whether the channel is open and ready */
     private boolean isOpen = false;
-
+    
+//    private UdpHandshakeTracker handshakeTracker = new UdpHandshakeTracker();
+    
     public ServerUdpChannel(int port, Selector selector) {
         this.port = port;
         this.selector = selector;
@@ -45,9 +52,8 @@ public class ServerUdpChannel {
 
     /** This method will open the channel and attach the channel to the given selector */
     public void start() throws ServerStartException, Exception {
-        InetSocketAddress address;
         try {
-            address = new InetSocketAddress(port);
+            hostAddress = new InetSocketAddress(port);
         }
         catch (IllegalArgumentException e) {
             throw new ServerStartException(ServerError.PORT_OUT_OF_RANGE);
@@ -55,7 +61,7 @@ public class ServerUdpChannel {
 
         channel = DatagramChannel.open();
         channel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
-        channel.socket().bind(address);
+        channel.socket().bind(hostAddress);
         channel.configureBlocking(false);
 
         SelectionKey key = channel.register(selector, SelectionKey.OP_READ);
@@ -69,42 +75,16 @@ public class ServerUdpChannel {
      *
      *  @return  returns the new connection or null if no connection could be accepted
      */
-    public UdpConnection accept(Packet handshake) throws ConnectionException {
-        assert(handshake != null);
-
-        long unique = 0;
-
-        // Attempt to read unique ID from handshake and send acknowledgement
+    public UdpConnection accept(long unique, SocketAddress address) throws ConnectionException {
         try {
-            unique = handshake.getLong();
-            Log.debug(LogLevel.SERVER, "Got a new handshake from client with id: " + unique);
-            sendPacket(handshake, handshake.getSource());
-        }
-        catch (PacketException e) {
-            throw new ConnectionException(e);
-        }
-        catch (ChannelWriteException e) {
-            throw new ConnectionException(e);
-        }
-
-        try {
-            // FIXME remove this, store address in Server UDP channel maybe..
-            InetSocketAddress address = null;
-            try {
-                address = new InetSocketAddress(port);
-            }
-            catch (IllegalArgumentException e) {
-                e.printStackTrace();
-            }
-
             // Open a new datagram channel and configure it
             DatagramChannel clientChannel = DatagramChannel.open();
             clientChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
-            clientChannel.socket().bind(address);
+            clientChannel.socket().bind(hostAddress);
             clientChannel.configureBlocking(false);
 
             // Create UDP connection and set received unique ID
-            UdpConnection connection = new UdpConnection(clientChannel, handshake.getSource());
+            UdpConnection connection = new UdpConnection(clientChannel, address);
             connection.setUnique(unique);
 
             // Connect UDP connection to client address to limit writing and reading
@@ -126,18 +106,23 @@ public class ServerUdpChannel {
 //      return packetBuffer.hasPackets();
 //  }
 
-    public Packet readPacket() throws ChannelReadException {
+    public List<Packet> readPacket() throws ChannelReadException {
         try {
             // Receive datagram from channel. Could be from unconnected clients.
             in.clear();
             SocketAddress clientAddress = channel.receive(in);
             in.flip();
 
+            // FIXME Doesn't support untangling multiple packets from the same buffer
             // TODO Need to store packet somewhere to receive it
-            Packet packet = Packet.fromByteBuffer(in);
-            packet.setSource(clientAddress);
+            //Packet packet = Packet.fromByteBuffer(in);
+            List<Packet> packets = PacketBuffer.packetsFromBuffer(in);
+            
+            for (Packet packet: packets) {
+                packet.setSource(clientAddress);
+            }
 
-            return packet;
+            return packets;
         } catch (IOException e) {
             throw new ChannelReadException("Failed to get socket address.");
         }
