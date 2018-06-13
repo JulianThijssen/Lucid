@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.ArrayList;
 import java.util.List;
 
 import lucid.exceptions.ChannelReadException;
@@ -113,13 +114,16 @@ public class ServerUdpChannel {
             SocketAddress clientAddress = channel.receive(in);
             in.flip();
 
-            // FIXME Doesn't support untangling multiple packets from the same buffer
             // TODO Need to store packet somewhere to receive it
-            //Packet packet = Packet.fromByteBuffer(in);
-            List<Packet> packets = PacketBuffer.packetsFromBuffer(in);
-            
-            for (Packet packet: packets) {
+            List<Packet> packets = new ArrayList<Packet>();
+            while (in.remaining() > Packet.HEADER_SIZE) {
+                Packet packet = Packet.fromByteBuffer(in);
+                if (packet == null) {
+                    break;
+                }
                 packet.setSource(clientAddress);
+                
+                packets.add(packet);
             }
 
             return packets;
