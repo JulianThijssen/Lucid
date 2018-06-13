@@ -11,7 +11,9 @@ import lucid.exceptions.ChannelWriteException;
 public class TcpChannel implements NetworkChannel {
     private SocketChannel channel;
 
-    private PacketBuffer packetBuffer = new PacketBuffer();
+    //private PacketBuffer packetBuffer = new PacketBuffer();
+    private PacketInputBuffer packetInputBuffer = new PacketInputBuffer();
+    private PacketOutputBuffer packetOutputBuffer = new PacketOutputBuffer();
 
     public TcpChannel(SocketChannel channel) {
         this.channel = channel;
@@ -33,26 +35,26 @@ public class TcpChannel implements NetworkChannel {
     }
 
     public boolean hasUnsentData() {
-        return packetBuffer.hasUnsentData();
+        return packetOutputBuffer.hasUnsentData();
     }
 
     public boolean hasPackets() {
-        return packetBuffer.hasPackets();
+        return packetInputBuffer.hasPackets();
     }
 
     @Override
     public void send(Packet packet) {
-        packetBuffer.send(packet);
+        packetOutputBuffer.send(packet);
     }
 
     @Override
     public Packet receive() {
-        return packetBuffer.receive();
+        return packetInputBuffer.receive();
     }
 
     @Override
     public void write() throws ChannelWriteException {
-        packetBuffer.write(b -> { return channel.write(b); });
+        packetOutputBuffer.write(b -> { return channel.write(b); });
     }
 
     @Override
@@ -60,7 +62,7 @@ public class TcpChannel implements NetworkChannel {
         try {
             SocketAddress address = getRemoteAddress();
 
-            packetBuffer.read(address, b -> { return channel.read(b); });
+            packetInputBuffer.read(address, b -> { return channel.read(b); });
         } catch (IOException e) {
             throw new ChannelReadException("Failed to get socket address.");
         }

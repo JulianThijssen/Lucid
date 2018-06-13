@@ -34,7 +34,7 @@ public class ServerUdpChannel {
     /** Byte buffer used for receiving datagram packets */
     private ByteBuffer in = ByteBuffer.allocate(65535);
 
-    private PacketBuffer packetBuffer = new PacketBuffer(); // TODO 65535 read size
+    //private PacketBuffer packetBuffer = new PacketBuffer(); // TODO 65535 read size
     
     /** Keeps track of whether the channel is open and ready */
     private boolean isOpen = false;

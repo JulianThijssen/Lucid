@@ -11,7 +11,8 @@ import lucid.exceptions.ChannelWriteException;
 public class UdpChannel implements NetworkChannel {
     private DatagramChannel channel;
 
-    private PacketBuffer packetBuffer = new PacketBuffer();
+    private PacketInputBuffer packetInputBuffer = new PacketInputBuffer();
+    private PacketOutputBuffer packetOutputBuffer = new PacketOutputBuffer();
 
     public UdpChannel(DatagramChannel channel) {
         this.channel = channel;
@@ -33,11 +34,11 @@ public class UdpChannel implements NetworkChannel {
     }
 
     public boolean hasUnsentData() {
-        return packetBuffer.hasUnsentData();
+        return packetOutputBuffer.hasUnsentData();
     }
 
     public boolean hasPackets() {
-        return packetBuffer.hasPackets();
+        return packetInputBuffer.hasPackets();
     }
 
     public void connect(SocketAddress address) throws IOException {
@@ -46,18 +47,18 @@ public class UdpChannel implements NetworkChannel {
 
     @Override
     public void send(Packet packet) {
-        packetBuffer.send(packet);
+        packetOutputBuffer.send(packet);
     }
 
     @Override
     public Packet receive() {
-        return packetBuffer.receive();
+        return packetInputBuffer.receive();
     }
 
     @Override
     public void write() throws ChannelWriteException {
-        if (packetBuffer.hasUnsentData()) {
-            packetBuffer.write(b -> { return channel.write(b); });
+        if (packetOutputBuffer.hasUnsentData()) {
+            packetOutputBuffer.write(b -> { return channel.write(b); });
         }
     }
 
@@ -66,7 +67,7 @@ public class UdpChannel implements NetworkChannel {
         try {
             SocketAddress address = getRemoteAddress();
 
-            int readBytes = packetBuffer.read(address, b -> { return channel.read(b); });
+            int readBytes = packetInputBuffer.read(address, b -> { return channel.read(b); });
         } catch (IOException e) {
             throw new ChannelReadException("Failed to get socket address.");
         }
