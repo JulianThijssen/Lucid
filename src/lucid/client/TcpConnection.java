@@ -1,5 +1,7 @@
 package lucid.client;
 
+import static lucid.network.ConnectionStatus.CONNECTED;
+
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
@@ -7,49 +9,42 @@ import java.net.StandardSocketOptions;
 import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ConnectionPendingException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.UnresolvedAddressException;
 import java.nio.channels.UnsupportedAddressTypeException;
-import java.util.ArrayList;
-import java.util.List;
 
 import lucid.exceptions.ConnectionException;
-import lucid.exceptions.ChannelReadException;
-import lucid.exceptions.ChannelWriteException;
 import lucid.network.Packet;
 import lucid.network.TcpChannel;
 import lucid.util.Log;
 import lucid.util.LogLevel;
 import lucid.util.UniqueGenerator;
 
-public class TcpConnection implements Runnable {
-    public static int sid = 0;
-
-    private int id = sid;
-
-    /** The connection of the client to the server */
-    private TcpChannel channel;
-
-    /** Whether the client is listening or not */
-    private boolean connected = false;
-
-    /** List of all the listeners that get notified of connection events */
-    private List<NetworkListener> listeners = new ArrayList<NetworkListener>();
-
+public class TcpConnection extends ClientConnection {
     public boolean connect(String host, int port) throws ConnectionException {
         try {
             Log.debug(LogLevel.CLIENT, String.format("Attempting to connect to host: %s at port %d", host, port));
             SocketChannel socketChannel = SocketChannel.open();
             socketChannel.connect(new InetSocketAddress(host, port));
             socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
-
+            
             channel = new TcpChannel(socketChannel);
-
+            Log.debug(LogLevel.CLIENT, "Handshaking...");
             Packet packet = new Packet((short) 0);
             packet.addLong(UniqueGenerator.unique);
             send(packet);
+            write();
             read();
-            getPacket();
+            channel.receive();
+            Log.debug(LogLevel.CLIENT, "Selector");
+            socketChannel.configureBlocking(false);
+            
+            selector = Selector.open();
+            SelectionKey key = socketChannel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+            key.attach(this);
+            
             Log.debug(LogLevel.CLIENT, "TCP handshake successful");
         } catch (AlreadyConnectedException ace) {
             throw new ConnectionException("Already connected to host");
@@ -68,92 +63,18 @@ public class TcpConnection implements Runnable {
         } catch (IOException e) {
             throw new ConnectionException(String.format("IO Exception occurred while connecting to: %s at port: %d", host, port));
         }
-        connected = true;
 
-        new Thread(this).start();
+        setConnectionStatus(CONNECTED);
+
+        start();
         notifyConnected();
-        //TODO Log.debug(String.format("Successfully connected to host: %s at port: %d", host, port));
+        Log.debug(LogLevel.CLIENT, String.format("Successfully connected to host: %s at port: %d", host, port));
 
         return true;
     }
-
-    public boolean isConnected() {
-        return connected;
-    }
-
+    
     @Override
-    public void run() {
-        while(connected) {
-            listen();
-        }
-    }
-
-    public void addListener(NetworkListener listener) {
-        listeners.add(listener);
-    }
-
-    private void listen() {
-        if (!channel.isConnected()) {
-            close();
-            return;
-        }
-
-        read();
-
-        while (channel.hasPackets()) {
-            Packet packet = getPacket();
-            notifyReceived(packet);
-        }
-    }
-
-    public void send(Packet packet) {
-        channel.send(packet);
-        try {
-            channel.write();
-        } catch (ChannelWriteException e) {
-            Log.debug(LogLevel.ERROR, e.getMessage());
-            close();
-        }
-    }
-
-    private void read() {
-        try {
-            channel.read();
-        } catch (ChannelReadException e) {
-            Log.debug(LogLevel.ERROR, e.getMessage());
-            close();
-        }
-    }
-
-    public Packet getPacket() {
-        return channel.receive();
-    }
-
-    public void notifyConnected() {
-        for(NetworkListener listener: listeners) {
-            listener.connected();
-        }
-    }
-
-    public void notifyReceived(Packet packet) {
-        for(NetworkListener listener: listeners) {
-            listener.received(packet);
-        }
-    }
-
-    public void notifyDisconnected() {
-        for(NetworkListener listener: listeners) {
-            listener.disconnected();
-        }
-    }
-
-    public void close() {
-        try {
-            connected = false;
-            if (channel != null) { channel.close(); }
-            notifyDisconnected();
-        } catch (IOException e) {
-            //TODO Log.debug("Connection to the server was closed");
-        }
+    public void onPacketReceived(Packet packet) {
+        notifyReceived(packet);
     }
 }

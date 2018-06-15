@@ -38,6 +38,7 @@ public class TcpChannel implements NetworkChannel {
         return packetOutputBuffer.hasUnsentData();
     }
 
+    @Override
     public boolean hasPackets() {
         return packetInputBuffer.hasPackets();
     }

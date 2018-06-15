@@ -11,7 +11,8 @@ public interface NetworkChannel {
     public void setBlocking(boolean blocking) throws IOException;
     public boolean isConnected();
     public SocketAddress getRemoteAddress() throws ClosedChannelException, IOException;
-
+    public boolean hasPackets();
+    
     public void send(Packet packet);
     public Packet receive();
 

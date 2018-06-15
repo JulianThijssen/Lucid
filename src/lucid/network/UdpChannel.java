@@ -37,6 +37,7 @@ public class UdpChannel implements NetworkChannel {
         return packetOutputBuffer.hasUnsentData();
     }
 
+    @Override
     public boolean hasPackets() {
         return packetInputBuffer.hasPackets();
     }
