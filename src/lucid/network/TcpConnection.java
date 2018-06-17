@@ -39,7 +39,6 @@ public class TcpConnection extends AbstractConnection {
 
     public void sendPacket(Packet packet) {
         channel.send(packet);
-        Log.debug(LogLevel.SPACKET, "Sent to: " + getUnique() + " , " + packet);
     }
 
     /**

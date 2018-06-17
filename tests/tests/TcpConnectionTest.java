@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 import lucid.client.TcpConnection;
 import lucid.exceptions.ConnectionException;
 import lucid.exceptions.ServerStartException;
+import lucid.network.ConnectionStatus;
 import lucid.network.Packet;
 import lucid.util.Log;
 import lucid.util.LogLevel;
@@ -31,11 +32,10 @@ public class TcpConnectionTest {
             packet.addString("Packet " + i);
 
             TcpConnection connection = new TcpConnection();
-            TcpConnection.sid++;
             connection.connect("127.0.0.1", 4444);
             connection.send(packet);
             //System.out.println(reply);
-            assertTrue(connection.isConnected());
+            assertTrue(connection.getConnectionStatus() == ConnectionStatus.CONNECTED);
 
             connection.close();
 

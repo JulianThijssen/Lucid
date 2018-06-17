@@ -35,7 +35,6 @@ public class PacketTransportTest implements NetworkListener {
         }
 
         TcpConnection connection = new TcpConnection();
-        TcpConnection.sid++;
         connection.addListener(this);
         connection.connect("127.0.0.1", 4444);
 
