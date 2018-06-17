@@ -34,13 +34,9 @@ public class ServerUdpChannel {
     // FIXME Use a constant
     /** Byte buffer used for receiving datagram packets */
     private ByteBuffer in = ByteBuffer.allocate(65535);
-
-    //private PacketBuffer packetBuffer = new PacketBuffer(); // TODO 65535 read size
     
     /** Keeps track of whether the channel is open and ready */
     private boolean isOpen = false;
-    
-//    private UdpHandshakeTracker handshakeTracker = new UdpHandshakeTracker();
     
     public ServerUdpChannel(int port, Selector selector) {
         this.port = port;
@@ -102,10 +98,6 @@ public class ServerUdpChannel {
             throw new ConnectionException(e);
         }
     }
-
-//  public boolean hasPackets() {
-//      return packetBuffer.hasPackets();
-//  }
 
     public List<Packet> readPacket() throws ChannelReadException {
         try {
